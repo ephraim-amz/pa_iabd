@@ -1,5 +1,6 @@
 import os
 import urllib
+import logging
 import time
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -8,11 +9,14 @@ from selenium.webdriver.common.keys import Keys
 driver = webdriver.Firefox()
 field_type = "foot"
 query = "soccer field"
+path = f'./img/{field_type}'
 
 site = f"https://www.google.com/imghp?hl=en"
 driver.get(site)
-button = driver.find_element(By.ID, "W0wltc")
-button.click()
+
+
+auto_reject_cookies_button = driver.find_element(By.ID, "W0wltc")
+auto_reject_cookies_button.click()
 
 input_element = driver.find_element(By.CLASS_NAME, "gLFyf")
 input_element.send_keys(query)
@@ -28,15 +32,18 @@ while True:
     last_height = new_height
 
 img_elements = driver.find_elements(By.CSS_SELECTOR, ".rg_i")
-nb_files = len(os.listdir(f'./img/{field_type}'))
+nb_files = len(os.listdir(path))
 
 for index, img_element in enumerate(img_elements):
     try:
         img_url = img_element.get_attribute("src")
         img_name = f"foot_pitch{index + nb_files + 1}.jpg"
-        img_path = os.path.join('img/foot', img_name)
+        img_path = os.path.join(path, img_name)
         urllib.request.urlretrieve(img_url, img_path)
-    except:
-        pass
+    except Exception as e:
+        logging.log(logging.ERROR, f"Couldn't retrieve this image because {e}")
+        continue
+
+logging.log(logging.INFO, f"{query} images downloaded")
 
 driver.quit()
