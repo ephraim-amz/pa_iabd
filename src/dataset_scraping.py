@@ -28,13 +28,16 @@ def get_input_xpath(key):
     elif key == "unsplash":
         return "/html/body/div/div/header/nav/div[2]/form/div[1]/input"
     elif key == "getty":
-        return "/html/body/div/div/header/nav/div[2]/form/div[1]/input"
+        return "/html/body/div[2]/section/div/div[1]/div/div[2]/div/div/div/div/div/div[1]/div[1]/form/input"
     elif key == "google":
         return "/html/body/div[1]/div[3]/form/div[1]/div[1]/div[1]/div/div[2]/textarea"
 
 
 if site == "google":
     auto_reject_cookies_button = driver.find_element(By.ID, "W0wltc")
+    auto_reject_cookies_button.click()
+elif site == "getty":
+    auto_reject_cookies_button = driver.find_element(By.XPATH, "//*[@id=\"onetrust-accept-btn-handler\"]")
     auto_reject_cookies_button.click()
 
 input_element = driver.find_element(By.XPATH, get_input_xpath(site))
@@ -50,7 +53,6 @@ else:
 
 nb_files = len(os.listdir(path))
 
-
 last_height = driver.execute_script("return document.body.scrollHeight")
 while True:
     driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
@@ -63,7 +65,7 @@ while True:
 for index, image in enumerate(images):
     try:
         img_url = image.get_attribute("src")
-        img_name = f"TEST{site.capitalize()}_{field_type}_pitch{index + nb_files + 1}.jpg"
+        img_name = f"{site.capitalize()}_{field_type}_pitch{index + nb_files + 1}.jpg"
         img_path = os.path.join(path, img_name)
         urllib.request.urlretrieve(img_url, img_path)
     except Exception as e:
