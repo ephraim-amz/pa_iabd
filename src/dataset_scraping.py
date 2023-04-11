@@ -11,26 +11,31 @@ field_type = "rugby"
 query = "terrain de rugby"
 path = f'./img/{field_type}'
 
-urls = {"google": f"https://www.google.com/imghp?hl=en",
-        "getty": "https://www.gettyimages.fr",
-        "unsplash": "https://www.unsplash.com/",
-        "bing": "https://www.bing.com/images/feed?form=Z9LH",
-        "adobe": "https://stock.adobe.com/fr",
-        "pexels": "https://www.pexels.com/fr-fr/",
-        "brave": f"https://search.brave.com/images?q={query.replace(' ', '%20')}&source=web"}
-site = "bing"
+urls = {
+    "google": f"https://www.google.com/imghp?hl=en",
+    "getty": "https://www.gettyimages.fr",
+    "unsplash": "https://www.unsplash.com/",
+    "bing": "https://www.bing.com/images/feed?form=Z9LH",
+    "adobe": "https://stock.adobe.com/fr",
+    "pexels": "https://www.pexels.com/fr-fr/",
+}
+site = "google"
 driver.get(urls.get(site))
 
 
 def get_input_xpath(key):
+    if key == "google":
+        return "/html/body/div[1]/div[3]/form/div[1]/div[1]/div[1]/div/div[2]/textarea"
+    elif key == "adobe":
+        return "/html/body/div/div/div/main/section/div[1]/section/div[1]/div[3]/div/div[2]/div/div/input"
+    elif key == "pexels":
+        return "/html/body/div[2]/header/div/form/div/input"
     if key == "bing":
         return "/html/body/header/form/div/input[1]"
     elif key == "unsplash":
         return "/html/body/div/div/header/nav/div[2]/form/div[1]/input"
     elif key == "getty":
         return "/html/body/div[2]/section/div/div[1]/div/div[2]/div/div/div/div/div/div[1]/div[1]/form/input"
-    elif key == "google":
-        return "/html/body/div[1]/div[3]/form/div[1]/div[1]/div[1]/div/div[2]/textarea"
 
 
 if site == "google":
@@ -44,7 +49,10 @@ input_element = driver.find_element(By.XPATH, get_input_xpath(site))
 input_element.send_keys(query)
 input_element.send_keys(Keys.RETURN)
 
-time.sleep(5)
+if site == "pexels":
+    time.sleep(7)
+else:
+    time.sleep(5)
 
 if site != "google":
     images = driver.find_elements(By.TAG_NAME, "img")
@@ -73,4 +81,5 @@ for index, image in enumerate(images):
         continue
 
 logging.log(logging.INFO, f"{query} images downloaded")
+
 driver.quit()
