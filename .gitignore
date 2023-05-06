@@ -2,3 +2,4 @@
 src/geckodriver.log
 src/.DS_Store
 src/library/.DS_Store
+src/library/target
