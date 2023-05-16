@@ -8,7 +8,7 @@ from selenium.webdriver.common.keys import Keys
 
 driver = webdriver.Firefox()
 field_type = "rugby"
-query = "terrain de rugby"
+query = "Stade de la Rabine"
 path = f'./img/{field_type}'
 
 urls = {
@@ -19,7 +19,7 @@ urls = {
     "adobe": "https://stock.adobe.com/fr",
     "pexels": "https://www.pexels.com/fr-fr/",
 }
-site = "google"
+site = "bing"
 driver.get(urls.get(site))
 
 
