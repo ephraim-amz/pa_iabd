@@ -1,2 +1,0 @@
-
-mod modele_linaire;
