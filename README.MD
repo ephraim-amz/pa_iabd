@@ -1,10 +1,12 @@
 # Projet annuel 3IABD2
 
-Ceci est le readme du projet annuel. Il expliquera comment notre application fonctionne et comportera des démonstrations.
+Ceci est la branche ML. Elle compotera le code relatif à l'implémentation du modèle linéaire en Rust.
 
-## Constitution du dataset :
+## Fonctions du modèle linéaire :
 
-- WebScraping d'images via moteur de recherche ou site de banque d'images (Google Images, Pexels, Getty etc..)
+- Création d'un nouvel objet modèle linéaire
+- Implémentation de la fonction d'entraînement du modèle
+- Implémentation de la fonction de prédiction du modèle linéaire
 
 
 *Ephraïm Amezian, Damien Nadjar, Zeineb Rekik, Rayan Stambouli 3IABD 2* 
