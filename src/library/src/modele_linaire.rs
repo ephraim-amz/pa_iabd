@@ -1,75 +1,64 @@
-use std::io::stderr;
-use ndarray::{Array1, s};
+use rand::Rng;
 
-// Tableau pour calculer les poids avec la fonctions sigmoid
+// Definition de la structure pour les poids
 
-pub struct LinearModel {
-    X: Vec<f32>,
+pub struct LinearClassifier {
+    weights: Vec<f32>,
+    bias: f32,
 }
 
 #[no_mangle]
-pub extern "C" fn create_linear_model(x: Vec<f32>) -> LinearModel {
-    LinearModel{
-        X: x
+pub extern "C" fn new(num_features: usize) -> *mut LinearClassifier {
+    let mut rng = rand::thread_rng();
+    let weights: Vec<f32> = (0..num_features).map(|_| rng.gen_range(-1.0..1.0)).collect();
+    let bias = 0.0;
+    let model: Box<LinearClassifier> = Box::new(LinearClassifier { weights, bias });
+    let leaked_model = Box::leak(model);
+    leaked_model
+}
+
+impl LinearClassifier {
+    #[no_mangle]
+    pub extern "C" fn fit(X: Vec<Vec<f32>>, y: Vec<f32>) -> f32 {
+        unimplemented!()
     }
+
+    /*
+    #[no_mangle]
+    pub extern "C" fn predict(lm: LinearClassifier, inputs: *mut Vec<f32>) -> f32 {
+        let mut z: f32 = 0.0;
+        if lm.X.len() != inputs.len() {
+            panic!("Erreur de dimension");
+        }
+        for i in 0..lm.X.len() - 1 {
+            z += lm.X.get(i).unwrap() * inputs.get(i).unwrap()
+        }
+        z += inputs.get(inputs.len() - 1).unwrap();
+        sigmoid(z)
+    }
+    */
 }
-
-#[no_mangle]
-pub extern "C" fn delete_array(vector: *mut vec<f32>, size: usize) {
-    unsafe {
-        Vec::from_raw_parts(vector, size as usize, size as usize)
-    };
-}
-
-
-
 
 #[no_mangle]
 pub extern "C" fn sigmoid(x: f32) -> f32 {
     1.0 / (1.0 + (-x).exp())
 }
 
-
 #[no_mangle]
-pub extern "C" fn destroy_model(lm: LinearModel){
-    delete_array(lm.X)
-}
-
-
-
-#[no_mangle]
-pub extern "C" fn predict(lm: LinearModel, weights: &Vec<f32>) -> f32 {
-    let mut z: f32 = 0.0;
-    if lm.X.len() != weights.len() {
-        panic!("Erreur de dimension");
+pub extern "C" fn delete_model(lm: *mut LinearClassifier) -> Box<LinearClassifier> {
+    unsafe {
+        Box::from_raw(lm)
     }
-    for i in 0..lm.X.len() - 1 {
-        z += lm.X.get(i).unwrap() * weights.get(i).unwrap()
-    }
-    z += weights.get(weights.len() - 1).unwrap();
-    sigmoid(z)
 }
 
 
 
 
 #[no_mangle]
-pub extern "C" fn add(a: i32, b: i32) -> i32 {
-    a + b
+pub extern "C" fn delete_float_array(arr: *mut f32, arr_len: i32) {
+    unsafe {
+        Vec::from_raw_parts(arr, arr_len as usize, arr_len as usize)
+    };
 }
 
-
-/*
-
-#[no_mangle]
-pub extern "C" fn predict_two(x: &[f64], weights: &[f64]) -> f64 {
-    let mut z = 0.;
-    for i in 0..x.len() {
-        z += x[i] * weights[..weights.len() - 1] + weights[weights.len() - 1]
-    }
-    sigmoid(z)
-}
-
-
- */
-
+// faire la fonction fit et prédict
