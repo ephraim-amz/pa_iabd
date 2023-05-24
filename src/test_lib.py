@@ -6,7 +6,7 @@ import sys
 if __name__ == "__main__":
     computer_plateform = sys.platform
     library_mapping = {
-        "linux": r"./library/target/debug/liblibrary.so",
+        "linux": r"/home/ephraim/IABD/pa_iabd/src/library/target/debug/liblibrary.so",
         "windows": r"./library/target/debug/liblibrary.dll",
         "darwin": r"./library/target/debug/liblibrary.dylib",
     }
