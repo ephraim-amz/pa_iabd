@@ -2,9 +2,10 @@ use rand::Rng;
 
 // Definition de la structure pour les poids
 
+#[repr(C)]
 pub struct LinearClassifier {
-    weights: Vec<f32>,
-    bias: f32,
+    pub weights: Vec<f32>,
+    pub bias: f32,
 }
 
 #[no_mangle]
@@ -23,20 +24,24 @@ impl LinearClassifier {
         unimplemented!()
     }
 
-    /*
+
     #[no_mangle]
-    pub extern "C" fn predict(lm: LinearClassifier, inputs: *mut Vec<f32>) -> f32 {
-        let mut z: f32 = 0.0;
-        if lm.X.len() != inputs.len() {
+    pub extern "C" fn predict(lm: LinearClassifier, inputs: &Vec<f32>) -> *mut f32 {
+        let mut z: Vec<f32> = vec![0.];
+
+        if lm.weights.len() != inputs.len() {
             panic!("Erreur de dimension");
         }
-        for i in 0..lm.X.len() - 1 {
-            z += lm.X.get(i).unwrap() * inputs.get(i).unwrap()
+
+
+        for i in 0..=lm.weights.len() - 1 {
+            z[0] += lm.weights[i] * inputs[i]
         }
-        z += inputs.get(inputs.len() - 1).unwrap();
-        sigmoid(z)
+        z[0] += lm.bias;
+
+        let mut result: Vec<f32> = vec![sigmoid(z[0])];
+        result.leak().as_mut_ptr()
     }
-    */
 }
 
 #[no_mangle]
@@ -50,8 +55,6 @@ pub extern "C" fn delete_model(lm: *mut LinearClassifier) -> Box<LinearClassifie
         Box::from_raw(lm)
     }
 }
-
-
 
 
 #[no_mangle]
