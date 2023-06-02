@@ -24,25 +24,27 @@ impl LinearClassifier {
         unimplemented!()
     }
 
-
     #[no_mangle]
-    pub extern "C" fn predict(lm: LinearClassifier, inputs: &Vec<f32>) -> *mut f32 {
+    pub extern "C" fn predict(lm: *mut LinearClassifier, inputs: &Vec<f32>) -> *mut f32 {
         let mut z: Vec<f32> = vec![0.];
 
-        if lm.weights.len() != inputs.len() {
-            panic!("Erreur de dimension");
+        unsafe {
+            if (*lm).weights.len() != inputs.len() {
+                panic!("Erreur de dimension");
+            }
+
+
+            for i in 0..=(*lm).weights.len() - 1 {
+                z[0] += (*lm).weights[i] * inputs[i]
+            }
+            z[0] += (*lm).bias;
+
+            let mut result: Vec<f32> = vec![sigmoid(z[0])];
+            result.leak().as_mut_ptr()
         }
-
-
-        for i in 0..=lm.weights.len() - 1 {
-            z[0] += lm.weights[i] * inputs[i]
-        }
-        z[0] += lm.bias;
-
-        let mut result: Vec<f32> = vec![sigmoid(z[0])];
-        result.leak().as_mut_ptr()
     }
 }
+
 
 #[no_mangle]
 pub extern "C" fn sigmoid(x: f32) -> f32 {
