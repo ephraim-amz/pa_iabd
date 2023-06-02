@@ -3,10 +3,11 @@ import os
 import shutil
 
 # Chemin vers le dossier contenant les images
-dossier_images = "./img/rugby"
+type_terrain = "basket"
+dossier_images = f"./img/{type_terrain}"
 
 # Chemin vers le dossier de sortie pour les images redimensionnées
-dossier_sortie = "./img/rugby_resize"
+dossier_sortie = f"./img/{type_terrain}_resize"
 
 # Vérifier si le dossier de sortie existe, sinon le créer
 if not os.path.exists(dossier_sortie):
