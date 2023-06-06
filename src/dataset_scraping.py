@@ -7,8 +7,8 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 
 driver = webdriver.Firefox()
-field_type = "rugby"
-query = "terrain de rugby"
+field_type = "foot"
+query = "Allianz Riviera"
 path = f'./img/{field_type}'
 
 urls = {
@@ -42,7 +42,7 @@ if site == "google":
     auto_reject_cookies_button = driver.find_element(By.ID, "W0wltc")
     auto_reject_cookies_button.click()
 elif site == "getty":
-    auto_reject_cookies_button = driver.find_element(By.XPATH, "//*[@id=\"onetrust-accept-btn-handler\"]")
+    auto_reject_cookies_button = driver.find_element(By.CSS_SELECTOR, "#onetrust-accept-btn-handler")
     auto_reject_cookies_button.click()
 
 input_element = driver.find_element(By.XPATH, get_input_xpath(site))
@@ -73,7 +73,7 @@ while True:
 for index, image in enumerate(images):
     try:
         img_url = image.get_attribute("src")
-        img_name = f"{site.capitalize()}_{field_type}_pitch{index + nb_files + 1}.jpg"
+        img_name = f"{site.capitalize()}_{query.split(' ')[-1]}_{index + 1}.jpg"
         img_path = os.path.join(path, img_name)
         urllib.request.urlretrieve(img_url, img_path)
     except Exception as e:
