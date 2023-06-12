@@ -10,4 +10,4 @@ crate-type = ["cdylib"]
 
 [dependencies]
 rand = "0.8.5"
-
+ndarray = "0.15.6"
