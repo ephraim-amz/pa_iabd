@@ -7,6 +7,7 @@ pub struct LinearClassifier {
     pub size: usize,
 }
 
+
 #[no_mangle]
 pub extern "C" fn new(num_features: usize) -> *mut LinearClassifier {
     let mut rng = rand::thread_rng();
@@ -61,24 +62,22 @@ pub extern "C" fn fit(
 }
 
 #[no_mangle]
-pub extern "C" fn predict(lm: *const LinearClassifier, inputs: *const f32) -> f32 {
+pub extern "C" fn predict(lm: *const LinearClassifier, inputs: *const f32, inputs_size: usize) -> f32 {
     let model = unsafe { &*lm };
+    let weights_slice = unsafe { std::slice::from_raw_parts(model.weights, model.size - 1) };
+    let inputs_slice = unsafe { std::slice::from_raw_parts(inputs, inputs_size - 1) };
 
-    let inputs_slice = unsafe { std::slice::from_raw_parts(inputs, lm.size - 1) };
-
-    unsafe {
-        if model.weights.len() != inputs.len() {
-            panic!("Erreur de dimension");
-        }
-
-        let z = model.weights.offset(0) * 1.;
-
-
-        for i in 0..=model.weights.len() - 1 {
-            z += model.weights.offset((i + 1 as isize)) * inputs_slice[i]
-        }
-        return z;
+    if model.size != inputs_size {
+        panic!("Erreur de dimension");
     }
+
+    let mut z = weights_slice[0] * 1.;
+
+
+    for i in 0..=model.size - 1 {
+        z += weights_slice[i + 1] * inputs_slice[i];
+    }
+    return z;
 }
 
 
