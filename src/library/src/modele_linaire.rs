@@ -22,6 +22,8 @@ pub extern "C" fn new(num_features: usize) -> *mut LinearClassifier {
     model
 }
 
+/*
+
 
 #[no_mangle]
 pub extern "C" fn fit(
@@ -31,8 +33,6 @@ pub extern "C" fn fit(
     input_size: i32,
     output_size: i32,
 ) {
-    unimplemented!()
-    /*
     unsafe {
         let dimensions = (*model).weights.len() - 1;
         let samples_count = output_size / dimensions as i32;
@@ -57,9 +57,10 @@ pub extern "C" fn fit(
 
         // TODO : Calcul matriciel avec la méthode du pseudo inverse
     }
-
-     */
 }
+
+*/
+
 
 #[no_mangle]
 pub extern "C" fn predict(lm: *const LinearClassifier, inputs: *const f32, inputs_size: usize) -> f32 {
@@ -89,14 +90,15 @@ pub extern "C" fn sigmoid(x: f32) -> f32 {
 #[no_mangle]
 pub extern "C" fn delete_model(lm: *mut LinearClassifier) -> Box<LinearClassifier> {
     unsafe {
+        delete_float_array((*lm).weights, (*lm).size);
         Box::from_raw(lm)
     }
 }
 
 
 #[no_mangle]
-pub extern "C" fn delete_float_array(arr: *mut f32, arr_len: i32) {
+pub extern "C" fn delete_float_array(arr: *mut f32, arr_len: usize) {
     unsafe {
-        Vec::from_raw_parts(arr, arr_len as usize, arr_len as usize)
+        Vec::from_raw_parts(arr, arr_len as usize, arr_len)
     };
 }
