@@ -19,7 +19,8 @@ pub extern "C" fn new(num_features: usize) -> *mut LinearClassifier {
         };
         Box::into_raw(Box::new(lm))
     };
-    model
+    let leak_lm = Box::leak(lm);
+    leak_lm
 }
 
 /*
