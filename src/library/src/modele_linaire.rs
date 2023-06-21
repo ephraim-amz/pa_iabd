@@ -11,15 +11,11 @@ pub struct LinearClassifier {
 #[no_mangle]
 pub extern "C" fn new(num_features: usize) -> *mut LinearClassifier {
     let mut rng = rand::thread_rng();
-    let model = {
-        let weights = Box::into_raw(vec![rng.gen_range(-1.0..1.0); num_features].into_boxed_slice()) as *mut f32;
-        let lm = LinearClassifier {
-            size: num_features,
-            weights,
-        };
-        Box::into_raw(Box::new(lm))
-    };
-    let leak_lm = Box::leak(lm);
+    let model = Box::new(LinearClassifier {
+        size: num_features,
+        weights: Box::into_raw(vec![rng.gen_range(-1.0..1.0); num_features].into_boxed_slice()) as *mut f32,
+    });
+    let leak_lm = Box::leak(model);
     leak_lm
 }
 
@@ -100,6 +96,6 @@ pub extern "C" fn delete_model(lm: *mut LinearClassifier) -> Box<LinearClassifie
 #[no_mangle]
 pub extern "C" fn delete_float_array(arr: *mut f32, arr_len: usize) {
     unsafe {
-        Vec::from_raw_parts(arr, arr_len as usize, arr_len)
+        Vec::from_raw_parts(arr, arr_len, arr_len)
     };
 }
