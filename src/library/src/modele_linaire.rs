@@ -11,15 +11,11 @@ pub struct LinearClassifier {
 #[no_mangle]
 pub extern "C" fn new(num_features: usize) -> *mut LinearClassifier {
     let mut rng = rand::thread_rng();
-    let model = {
-        let weights = Box::into_raw(vec![rng.gen_range(-1.0..1.0); num_features].into_boxed_slice()) as *mut f32;
-        let lm = LinearClassifier {
-            size: num_features,
-            weights,
-        };
-        Box::into_raw(Box::new(lm))
-    };
-    model
+    let model = Box::new(LinearClassifier {
+        size: num_features,
+        weights: Box::into_raw(vec![rng.gen_range(-1.0..1.0); num_features].into_boxed_slice()) as *mut f32,
+    });
+    Box::leak(model)
 }
 
 /*
