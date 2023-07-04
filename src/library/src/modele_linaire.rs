@@ -1,4 +1,5 @@
 use rand::Rng;
+use nalgebra::{DMatrix, DVector};
 
 
 #[repr(C)]
@@ -19,51 +20,66 @@ pub extern "C" fn new(num_features: usize) -> *mut LinearClassifier {
     leak_lm
 }
 
-/*
-
 
 #[no_mangle]
-pub extern "C" fn fit(
-    model: *mut LinearClassifier,
-    flattened_inputs: *mut f32,
-    flattened_outputs: *const f32,
-    input_size: i32,
-    output_size: i32,
+pub extern "C" fn train_regression(
+    lm: *mut LinearClassifier,
+    flattened_dataset_inputs: *const f32,
+    flattened_dataset_expected_outputs: *const f32,
+    len_input: usize,
+    len_output: usize,
 ) {
     unsafe {
-        let dimensions = (*model).weights.len() - 1;
-        let samples_count = output_size / dimensions as i32;
+        let linear_model = &mut *lm;
 
+        let input_dim = linear_model.size - 1;
+        let samples_count = len_input / input_dim;
 
-        let mut x_matrix: Vec<Vec<f32>> = vec![vec![1.; dimensions]; dimensions];
-        let mut x_vector = vec![0.; dimensions];
+        let mut vX = DVector::<f32>::zeros(len_input);
+        for i in 0..len_input {
+            vX[i] = *flattened_dataset_inputs.offset(i as isize);
+        }
+        let X = DMatrix::from_fn(len_input, 1, |i, _| vX[i]);
 
-        // let flattened_input_slice = std::slice::from_raw_parts(flattened_input, dimension);
-        // let flattened_output_slice = std::slice::from_raw_parts(flattened_output, dimension);
+        let mut vY = DVector::<f32>::zeros(len_output);
+        for i in 0..len_output {
+            vY[i] = *flattened_dataset_expected_outputs.offset(i as isize);
+        }
+        let Y = DMatrix::from_fn(len_output, 1, |i, _| vY[i]);
 
+        let ones = DMatrix::<f32>::repeat(samples_count, 1, 1.0);
 
-        for i in 0..input_size {
-            &x_vector[i as usize] = &flattened_inputs[i as usize]
+        let mut Xi = DMatrix::<f32>::zeros(X.nrows(), X.ncols() + ones.ncols());
+        Xi.column_mut(0).copy_from(&X.column(0));
+
+        let ones_col = ones.column(0);
+        for i in 0..samples_count {
+            Xi.column_mut(i + X.ncols()).copy_from(&ones_col);
         }
 
-        let y_vector = vec![0., dimensions];
+        let W = Xi.transpose() * &Xi;
 
-        for i in 0..input_size {
-            y_vector.get(i).unwrap() = flattened_outputs.get(i).unwrap();
+        let W_inv = W.try_inverse().expect("Matrix is not invertible");
+
+        let W2 = &W_inv * Xi.transpose();
+
+        let W3 = &W2 * Y;
+
+        let Ww = W3.iter().cloned().collect::<Vec<f32>>();
+
+        for i in 0..(linear_model.size - 1) as usize {
+            (*linear_model.weights.offset(i as isize)) = Ww[i];
         }
-
-        // TODO : Calcul matriciel avec la méthode du pseudo inverse
     }
 }
 
-*/
-
 
 #[no_mangle]
-pub extern "C" fn predict(lm: *const LinearClassifier, inputs: *const f32, inputs_size: usize) -> f32 {
+pub extern "C" fn predict_regression(lm: *const LinearClassifier, inputs: *const f32, inputs_size: usize) -> f32 {
     let model = unsafe { &*lm };
-    let weights_slice = unsafe { std::slice::from_raw_parts(model.weights, model.size - 1) };
+    let weights_slice = unsafe { std::slice::from_raw_parts(model.weights, model.size) };
     let inputs_slice = unsafe { std::slice::from_raw_parts(inputs, inputs_size - 1) };
+
 
     if model.size != inputs_size {
         panic!("Erreur de dimension");
@@ -72,8 +88,8 @@ pub extern "C" fn predict(lm: *const LinearClassifier, inputs: *const f32, input
     let mut z = weights_slice[0] * 1.;
 
 
-    for i in 0..=model.size - 1 {
-        z += weights_slice[i + 1] * inputs_slice[i];
+    for i in 1..model.size {
+        z += weights_slice[i] * inputs_slice[i - 1];
     }
     return z;
 }
