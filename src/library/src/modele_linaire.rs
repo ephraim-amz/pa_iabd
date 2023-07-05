@@ -81,7 +81,7 @@ pub extern "C" fn predict_regression(lm: *const LinearClassifier, inputs: *const
     let inputs_slice = unsafe { std::slice::from_raw_parts(inputs, inputs_size - 1) };
 
 
-    if model.size != inputs_size {
+    if model.size +1 != inputs_size {
         panic!("Erreur de dimension");
     }
 
@@ -92,6 +92,57 @@ pub extern "C" fn predict_regression(lm: *const LinearClassifier, inputs: *const
         z += weights_slice[i] * inputs_slice[i - 1];
     }
     return z;
+}
+
+#[no_mangle]
+pub extern "C" fn train_classification(
+    lm: *mut LinearClassifier,
+    flattened_inputs: *const f32,
+    flattened_outputs: *const f32,
+    inputs_size: usize,
+    output_size: usize,
+    lr: f32,
+    epochs: i32,
+) {
+    unsafe {
+        let dimensions = ((*lm).size - 1) as i32;
+
+
+        for _ in 0..epochs {
+            let mut rng = rand::thread_rng();
+            let k: i32 = rng.gen_range(0..=dimensions);
+            let inputs_slice = std::slice::from_raw_parts(flattened_inputs.offset((k * dimensions) as isize), dimensions as usize);
+            let output_slice = std::slice::from_raw_parts(flattened_outputs, output_size);
+            let y = output_slice[k as usize];
+            let g = predict_classification(lm, flattened_inputs, inputs_size);
+
+
+
+            let first_value_ptr = (*lm).weights.offset(0);
+            let first_value = *first_value_ptr;
+            *first_value_ptr = first_value + lr * (y - g) * 1.;
+
+            for i in 1..(*lm).size {
+                let value_ptr = (*lm).weights.offset(i as isize);
+                let value = *value_ptr;
+                *value_ptr = value + lr * (y - g) * inputs_slice[i - 1];
+            }
+        }
+    }
+}
+
+
+#[no_mangle]
+pub extern "C" fn predict_classification(lm: *const LinearClassifier, inputs: *const f32, inputs_size: usize) -> f32
+{
+    let pred_value = predict_regression(lm, inputs, inputs_size);
+    return if pred_value > 0. {
+        1.
+    } else if pred_value < 0.0 {
+        -1.0
+    } else {
+        0.0
+    };
 }
 
 
