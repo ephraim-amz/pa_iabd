@@ -11,16 +11,16 @@ pub struct PMC {
 }
 
 #[no_mangle]
-pub extern "C" fn create_mlp_model(neurons_per_layer: *const i32, layer_size_per_neuron: usize) -> *mut PMC {
+pub extern "C" fn new_pmc(neurons_per_layer: *const i32, layer_size_per_neuron: usize) -> *mut PMC {
     let neurons_per_layer_slice = unsafe { slice::from_raw_parts(neurons_per_layer, layer_size_per_neuron) };
     let mut rng = rand::thread_rng();
 
     let mut pmc_model = Box::new(PMC {
         layers: 0,
-        neurons_per_layer: neurons_per_layer_slice.to_vec(), //TODO
+        neurons_per_layer: neurons_per_layer_slice.to_vec(),
         W: Vec::new(),
         X: Vec::new(),
-        deltas: vec![vec![0.0; layer_size_per_neuron]], //TODO
+        deltas: vec![vec![0.0; layer_size_per_neuron]],
     });
 
 
@@ -52,33 +52,22 @@ pub extern "C" fn create_mlp_model(neurons_per_layer: *const i32, layer_size_per
 }
 
 
-// We could return losses and metrics too ere if needed
-// dataset inputs contains all the features of all training samples concatenated
-// dataset outputs contains all the expected outputs of all training samples concatenated
 #[no_mangle]
-pub extern "C" fn train_mlp_model(model: *mut PMC, dataset_inputs: *const f32, lines: i32, columns: i32,
+pub extern "C" fn train_pmc_model(model: *mut PMC, dataset_inputs: *const f32, lines: i32, columns: i32,
                                   dataset_outputs: *const f32, output_columns: i32, alpha: f32, nb_iter: i32,
                                   is_classification: bool) {
-    //TODO : training
     unimplemented!()
 }
 
 #[no_mangle]
-pub extern "C" fn predict_mlp_model(model: *mut PMC, sample_inputs: *const f32, columns: i32,
+pub extern "C" fn predict_pmc_model(model: *mut PMC, sample_inputs: *const f32, columns: i32,
                                     is_classification: bool) -> *mut f32 {
-    //TODO : Predict
-    /*
-    let fake_output = vec![1.0f32];
-
-    fake_output.leak().as_mut_ptr()
-
-    */
     unimplemented!()
 }
 
 #[no_mangle]
-pub extern "C" fn delete_mlp_model(model: *mut PMC) {
+pub extern "C" fn delete_pmc_model(model: *mut PMC) {
     unsafe {
-        Box::from_raw(model);
+        drop(Box::from_raw(model));
     }
 }
