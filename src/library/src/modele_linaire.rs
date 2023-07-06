@@ -1,18 +1,17 @@
 use rand::Rng;
 use nalgebra::{DMatrix, DVector};
 
-
 #[repr(C)]
-pub struct LinearClassifier {
+pub struct Model {
     pub weights: *mut f32,
     pub size: usize,
 }
 
 
 #[no_mangle]
-pub extern "C" fn new(num_features: usize) -> *mut LinearClassifier {
+pub extern "C" fn new(num_features: usize) -> *mut Model {
     let mut rng = rand::thread_rng();
-    let model = Box::new(LinearClassifier {
+    let model = Box::new(Model {
         size: num_features,
         weights: Box::into_raw(vec![rng.gen_range(-1.0..1.0); num_features].into_boxed_slice()) as *mut f32,
     });
@@ -23,7 +22,7 @@ pub extern "C" fn new(num_features: usize) -> *mut LinearClassifier {
 
 #[no_mangle]
 pub extern "C" fn train_regression(
-    lm: *mut LinearClassifier,
+    lm: *mut Model,
     flattened_dataset_inputs: *const f32,
     flattened_dataset_expected_outputs: *const f32,
     len_input: usize,
@@ -75,18 +74,13 @@ pub extern "C" fn train_regression(
 
 
 #[no_mangle]
-pub extern "C" fn predict_regression(lm: *const LinearClassifier, inputs: *const f32, inputs_size: usize) -> f32 {
+pub extern "C" fn predict_regression(lm: *const Model, inputs: *const f32, inputs_size: usize) -> f32 {
     let model = unsafe { &*lm };
     let weights_slice = unsafe { std::slice::from_raw_parts(model.weights, model.size) };
     let inputs_slice = unsafe { std::slice::from_raw_parts(inputs, inputs_size - 1) };
 
 
-    if model.size +1 != inputs_size {
-        panic!("Erreur de dimension");
-    }
-
-    let mut z = weights_slice[0] * 1.;
-
+    let mut z = weights_slice[0];
 
     for i in 1..model.size {
         z += weights_slice[i] * inputs_slice[i - 1];
@@ -95,8 +89,8 @@ pub extern "C" fn predict_regression(lm: *const LinearClassifier, inputs: *const
 }
 
 #[no_mangle]
-pub extern "C" fn train_classification(
-    lm: *mut LinearClassifier,
+pub fn train_classification(
+    lm: *mut Model,
     flattened_inputs: *const f32,
     flattened_outputs: *const f32,
     inputs_size: usize,
@@ -104,36 +98,56 @@ pub extern "C" fn train_classification(
     lr: f32,
     epochs: i32,
 ) {
+    let mut rng = rand::thread_rng();
+
     unsafe {
-        let dimensions = ((*lm).size - 1) as i32;
-
-
         for _ in 0..epochs {
-            let mut rng = rand::thread_rng();
-            let k: i32 = rng.gen_range(0..=dimensions);
-            let inputs_slice = std::slice::from_raw_parts(flattened_inputs.offset((k * dimensions) as isize), dimensions as usize);
-            let output_slice = std::slice::from_raw_parts(flattened_outputs, output_size);
-            let y = output_slice[k as usize];
-            let g = predict_classification(lm, flattened_inputs, inputs_size);
+            let k = rng.gen_range(0..(*lm).size);
+            let inputs = std::slice::from_raw_parts(flattened_inputs, inputs_size * output_size);
+            let outputs = std::slice::from_raw_parts(flattened_outputs, output_size);
 
+            let mut Xk = vec![1.0];
+            for i in 0..output_size {
+                Xk.push(inputs[k * output_size + i]);
+            }
 
-
-            let first_value_ptr = (*lm).weights.offset(0);
-            let first_value = *first_value_ptr;
-            *first_value_ptr = first_value + lr * (y - g) * 1.;
+            let gXk = match dot_product(transpose((*lm).weights), &Xk) {
+                x if x >= 1.0 => 1.0,
+                x if x <= -1.0 => 2.0,
+                _ => 0.0,
+            };
 
             for i in 1..(*lm).size {
-                let value_ptr = (*lm).weights.offset(i as isize);
-                let value = *value_ptr;
-                *value_ptr = value + lr * (y - g) * inputs_slice[i - 1];
+                let weight_ptr = (*lm).weights.add(i - 1);
+                *weight_ptr = *weight_ptr + lr * (outputs[k] - gXk) * Xk[i - 1];
             }
         }
     }
 }
 
+fn dot_product(weights: *mut f32, inputs: &[f32]) -> f32 {
+    let mut result = 0.0;
+    for i in 0..inputs.len() {
+        unsafe {
+            result += *weights.add(i) * inputs[i];
+        }
+    }
+    result
+}
+
+fn transpose(weights: *mut f32) -> *mut f32 {
+    let mut transposed = Vec::new();
+    for i in 0..3 {
+        unsafe {
+            transposed.push(*weights.add(i));
+        }
+    }
+    transposed.as_mut_ptr()
+}
+
 
 #[no_mangle]
-pub extern "C" fn predict_classification(lm: *const LinearClassifier, inputs: *const f32, inputs_size: usize) -> f32
+pub extern "C" fn predict_classification(lm: *const Model, inputs: *const f32, inputs_size: usize) -> f32
 {
     let pred_value = predict_regression(lm, inputs, inputs_size);
     return if pred_value > 0. {
@@ -152,7 +166,7 @@ pub extern "C" fn sigmoid(x: f32) -> f32 {
 }
 
 #[no_mangle]
-pub extern "C" fn delete_model(lm: *mut LinearClassifier) -> Box<LinearClassifier> {
+pub extern "C" fn delete_model(lm: *mut Model) -> Box<Model> {
     unsafe {
         delete_float_array((*lm).weights, (*lm).size);
         Box::from_raw(lm)
