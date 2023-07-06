@@ -46,11 +46,8 @@ if __name__ == "__main__":
 
 
     new_pmc_model_arg_dict = {
-        "layers": ctypes.c_size_t,
         "neurons_per_layer": ctypes.POINTER(Veci32),
-        "W": ctypes.POINTER(Vec3df32),
-        "X": ctypes.POINTER(Vec2df32),
-        "deltas": ctypes.POINTER(Vec2df32),
+        "layer_size_per_neuron": ctypes.c_size_t,
     }
     lib.new_pmc.argtypes = list(new_pmc_model_arg_dict.values())
     lib.new_pmc.restype = ctypes.POINTER(PMC)
