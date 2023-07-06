@@ -1,5 +1,6 @@
-use std::slice;
+use ndarray::s;
 use rand::Rng;
+use std::f32;
 
 #[repr(C)]
 pub struct PMC {
@@ -10,9 +11,31 @@ pub struct PMC {
     deltas: Vec<Vec<f32>>,
 }
 
+impl PMC {
+    fn forward_pass(mut self, sample_inputs: *const f32, sample_input_size: usize, is_classification: bool) {
+        let sample_inputs_slice = unsafe { std::slice::from_raw_parts(sample_inputs, sample_input_size) };
+        let layers = self.neurons_per_layer.len() - 1;
+        for j in 1..=self.neurons_per_layer[0] as usize {
+            self.X[0][j] = sample_inputs_slice[j - 1];
+        }
+        for layer in 1..=layers {
+            for j in 1..self.neurons_per_layer[layer] as usize {
+                let mut res = 0.;
+                for i in 0..=self.neurons_per_layer[layer - 1] as usize {
+                    res += self.W[layer][i][j] * self.X[layer - 1][i];
+                }
+                self.X[layer][j] = res;
+                if is_classification || layer < layers {
+                    self.X[layer][j] = f32::tanh(self.X[layer][j]);
+                }
+            }
+        }
+    }
+}
+
 #[no_mangle]
 pub extern "C" fn new_pmc(neurons_per_layer: *const i32, layer_size_per_neuron: usize) -> *mut PMC {
-    let neurons_per_layer_slice = unsafe { slice::from_raw_parts(neurons_per_layer, layer_size_per_neuron) };
+    let neurons_per_layer_slice = unsafe { std::slice::from_raw_parts(neurons_per_layer, layer_size_per_neuron) };
     let mut rng = rand::thread_rng();
 
     let mut pmc_model = Box::new(PMC {
@@ -50,7 +73,6 @@ pub extern "C" fn new_pmc(neurons_per_layer: *const i32, layer_size_per_neuron: 
     let leaked = Box::leak(pmc_model);
     leaked
 }
-
 
 #[no_mangle]
 pub extern "C" fn train_pmc_model(model: *mut PMC, dataset_inputs: *const f32, lines: i32, columns: i32,
