@@ -11,22 +11,22 @@ pub struct PMC {
     deltas: Vec<Vec<f32>>,
 }
 
-impl PMC {
-    fn forward_pass(mut self, sample_inputs: *const f32, sample_input_size: usize, is_classification: bool) {
-        let sample_inputs_slice = unsafe { std::slice::from_raw_parts(sample_inputs, sample_input_size) };
-        let layers = self.neurons_per_layer.len() - 1;
-        for j in 1..=self.neurons_per_layer[0] as usize {
-            self.X[0][j] = sample_inputs_slice[j - 1];
+fn forward_pass(model: *mut PMC, sample_inputs: *const f32, sample_inputs_size: usize, is_classification: bool) {
+    unsafe {
+        let sample_inputs_slice = std::slice::from_raw_parts(sample_inputs, sample_inputs_size);
+        let layers = (*model).neurons_per_layer.len() - 1;
+        for j in 1..=(*model).neurons_per_layer[0] as usize {
+            (*model).X[0][j] = sample_inputs_slice[j - 1];
         }
         for layer in 1..=layers {
-            for j in 1..self.neurons_per_layer[layer] as usize {
+            for j in 1..(*model).neurons_per_layer[layer] as usize {
                 let mut res = 0.;
-                for i in 0..=self.neurons_per_layer[layer - 1] as usize {
-                    res += self.W[layer][i][j] * self.X[layer - 1][i];
+                for i in 0..=(*model).neurons_per_layer[layer - 1] as usize {
+                    res += (*model).W[layer][i][j] * (*model).X[layer - 1][i];
                 }
-                self.X[layer][j] = res;
+                (*model).X[layer][j] = res;
                 if is_classification || layer < layers {
-                    self.X[layer][j] = f32::tanh(self.X[layer][j]);
+                    (*model).X[layer][j] = f32::tanh((*model).X[layer][j]);
                 }
             }
         }
@@ -82,9 +82,57 @@ pub extern "C" fn train_pmc_model(model: *mut PMC, dataset_inputs: *const f32, l
 }
 
 #[no_mangle]
-pub extern "C" fn predict_pmc_model(model: *mut PMC, sample_inputs: *const f32, columns: i32,
-                                    is_classification: bool) -> *mut f32 {
-    unimplemented!()
+pub extern "C" fn predict_pmc_model(
+    model: *mut PMC,
+    sample_inputs: *const f32,
+    sample__inputs_size: usize,
+    is_classification: bool,
+) -> *mut f32 {
+    return if is_classification {
+        predict_pmc_classification(model, sample_inputs, sample__inputs_size)
+    } else {
+        predict_pmc_regression(model, sample_inputs, sample__inputs_size)
+    };
+}
+
+#[no_mangle]
+pub extern "C" fn predict_pmc_classification(
+    model: *mut PMC,
+    sample_inputs: *const f32,
+    sample_inputs_size: usize,
+) -> *mut f32 {
+    unsafe {
+        let last_element = (*model).X.len() - 1;
+        let size = (*model).X[last_element].len() - 1;
+        let prediction_vector = Box::into_raw(vec![0.0; size].into_boxed_slice()) as *mut f32;
+        forward_pass(model, sample_inputs, sample_inputs_size, true);
+
+        for i in 0..size {
+            *prediction_vector.add(i) = (*model).X[last_element][(i + 1)];
+        }
+        prediction_vector
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn predict_pmc_regression(
+    model: *mut PMC,
+    sample_inputs: *const f32,
+    sample_inputs_size: usize,
+) -> *mut f32 {
+    unsafe {
+        let last_element = (*model).X.len() - 1;
+        let size = (*model).X[last_element].len() - 1;
+        let prediction_vector = Box::into_raw(vec![0.0; size].into_boxed_slice()) as *mut f32;
+
+
+        forward_pass(model, sample_inputs, sample_inputs_size, false);
+
+        for i in 0..size {
+            *prediction_vector.add(i) = (*model).X[last_element][(i + 1)];
+        }
+        prediction_vector
+    }
 }
 
 #[no_mangle]
