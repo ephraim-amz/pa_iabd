@@ -3,15 +3,16 @@ use std::f32;
 
 #[repr(C)]
 pub struct PMC {
-    layers: usize,
-    dimensions: Vec<i32>,
+    layers: u32,
+    dimensions: Vec<i64>,
     W: Vec<Vec<Vec<f32>>>,
     X: Vec<Vec<f32>>,
     deltas: Vec<Vec<f32>>,
 }
 
+
 #[no_mangle]
-pub extern "C" fn new_pmc(dimensions_arr: *const i32, layer_size_per_neuron: usize) -> *mut PMC {
+pub extern "C" fn new_pmc(dimensions_arr: *const i64, layer_size_per_neuron: usize) -> *mut PMC {
     let neurons_per_layer_slice = unsafe { std::slice::from_raw_parts(dimensions_arr, layer_size_per_neuron) };
     let mut rng = thread_rng();
 
@@ -69,7 +70,7 @@ pub extern "C" fn train_pmc_model(
         let sample_count = (dataset_inputs_size as f32 / input_dimensions as f32).floor() as i32;
         let L = (*model).dimensions.len() - 1;
         for _epoch in 0..epochs {
-            let k = rng.gen_range(0..=sample_count);
+            let k = rng.gen_range(0..=sample_count) as i64;
 
             let (inputs_slice_length, inputs_slice) = get_portion_from_pointer(flattened_dataset_inputs, input_dimensions, k);
             let (_, outputs_slice) = get_portion_from_pointer(flattened_dataset_outputs, nb_outputs, k);
@@ -185,7 +186,7 @@ fn forward_pass(model: *mut PMC, sample_inputs: *const f32, sample_inputs_size: 
     }
 }
 
-fn get_portion_from_pointer(flattened_dataset_inputs: *const f32, input_dimensions: i32, k: i32) -> (usize, &'static [f32]) {
+fn get_portion_from_pointer(flattened_dataset_inputs: *const f32, input_dimensions: i64, k: i64) -> (usize, &'static [f32]) {
     let start_index = (k * input_dimensions) as usize;
     let end_index = ((k + 1) * input_dimensions) as usize;
     let raw_ptr: *const f32 = flattened_dataset_inputs;
