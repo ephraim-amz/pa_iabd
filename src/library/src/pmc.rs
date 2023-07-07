@@ -95,8 +95,7 @@ pub extern "C" fn predict_pmc_model(
     };
 }
 
-#[no_mangle]
-pub extern "C" fn predict_pmc_classification(
+fn predict_pmc_classification(
     model: *mut PMC,
     sample_inputs: *const f32,
     sample_inputs_size: usize,
@@ -114,8 +113,7 @@ pub extern "C" fn predict_pmc_classification(
     }
 }
 
-#[no_mangle]
-pub extern "C" fn predict_pmc_regression(
+fn predict_pmc_regression(
     model: *mut PMC,
     sample_inputs: *const f32,
     sample_inputs_size: usize,
