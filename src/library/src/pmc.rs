@@ -1,46 +1,23 @@
-use ndarray::s;
-use rand::Rng;
+use rand::{Rng, thread_rng};
 use std::f32;
 
 #[repr(C)]
 pub struct PMC {
     layers: usize,
-    neurons_per_layer: Vec<i32>,
+    dimensions: Vec<i32>,
     W: Vec<Vec<Vec<f32>>>,
     X: Vec<Vec<f32>>,
     deltas: Vec<Vec<f32>>,
 }
 
-fn forward_pass(model: *mut PMC, sample_inputs: *const f32, sample_inputs_size: usize, is_classification: bool) {
-    unsafe {
-        let sample_inputs_slice = std::slice::from_raw_parts(sample_inputs, sample_inputs_size);
-        let layers = (*model).neurons_per_layer.len() - 1;
-        for j in 1..=(*model).neurons_per_layer[0] as usize {
-            (*model).X[0][j] = sample_inputs_slice[j - 1];
-        }
-        for layer in 1..=layers {
-            for j in 1..(*model).neurons_per_layer[layer] as usize {
-                let mut res = 0.;
-                for i in 0..=(*model).neurons_per_layer[layer - 1] as usize {
-                    res += (*model).W[layer][i][j] * (*model).X[layer - 1][i];
-                }
-                (*model).X[layer][j] = res;
-                if is_classification || layer < layers {
-                    (*model).X[layer][j] = f32::tanh((*model).X[layer][j]);
-                }
-            }
-        }
-    }
-}
-
 #[no_mangle]
-pub extern "C" fn new_pmc(neurons_per_layer: *const i32, layer_size_per_neuron: usize) -> *mut PMC {
-    let neurons_per_layer_slice = unsafe { std::slice::from_raw_parts(neurons_per_layer, layer_size_per_neuron) };
-    let mut rng = rand::thread_rng();
+pub extern "C" fn new_pmc(dimensions_arr: *const i32, layer_size_per_neuron: usize) -> *mut PMC {
+    let neurons_per_layer_slice = unsafe { std::slice::from_raw_parts(dimensions_arr, layer_size_per_neuron) };
+    let mut rng = thread_rng();
 
     let mut pmc_model = Box::new(PMC {
         layers: 0,
-        neurons_per_layer: neurons_per_layer_slice.to_vec(),
+        dimensions: neurons_per_layer_slice.to_vec(),
         W: Vec::new(),
         X: Vec::new(),
         deltas: vec![vec![0.0; layer_size_per_neuron]],
@@ -80,24 +57,64 @@ pub extern "C" fn train_pmc_model(
     flattened_dataset_inputs: *const f32,
     dataset_inputs_size: usize,
     flattened_dataset_outputs: *const f32,
-    dataset_outputs_size: usize,
     alpha: f32,
     epochs: i32,
+    is_classification: bool,
 ) {
-    unimplemented!()
+    let mut rng = thread_rng();
+    unsafe {
+        let input_dimensions = (*model).dimensions[0];
+        let last_index = (*model).dimensions.len() - 1;
+        let nb_outputs = (*model).dimensions[last_index];
+        let sample_count = (dataset_inputs_size as f32 / input_dimensions as f32).floor() as i32;
+        let L = (*model).dimensions.len() - 1;
+        for _epoch in 0..epochs {
+            let k = rng.gen_range(0..=sample_count);
+
+            let (inputs_slice_length, inputs_slice) = get_portion_from_pointer(flattened_dataset_inputs, input_dimensions, k);
+            let (_, outputs_slice) = get_portion_from_pointer(flattened_dataset_outputs, nb_outputs, k);
+
+            forward_pass(model, inputs_slice.as_ptr(), inputs_slice_length, is_classification);
+
+            for j in 1..=(*model).dimensions[L] as usize {
+                (*model).deltas[L][j] = (*model).X[L][j] - outputs_slice[j - 1];
+                if is_classification {
+                    (*model).deltas[L][j] *= 1. - (*model).X[L][j] * (*model).X[L][j];
+                }
+            }
+
+            for l in (1..L).rev() {
+                for i in 1..=(*model).dimensions[l - 1] as usize {
+                    let mut res: f32 = 0.;
+                    for j in 1..=(*model).dimensions[l] as usize {
+                        res += (*model).W[l][i][j] * (*model).deltas[l][j];
+                    }
+                    (*model).deltas[l - 1][i] = (1. - (*model).X[l - 1][i] * (*model).X[l - 1][i]) * res;
+                }
+            }
+
+            for l in 1..L {
+                for i in 0..=(*model).dimensions[l - 1] as usize {
+                    for j in 1..=(*model).dimensions[l] as usize {
+                        (*model).W[l][i][j] -= alpha * (*model).X[l - 1][i] * (*model).deltas[l][j];
+                    }
+                }
+            }
+        }
+    }
 }
 
 #[no_mangle]
 pub extern "C" fn predict_pmc_model(
     model: *mut PMC,
     sample_inputs: *const f32,
-    sample__inputs_size: usize,
+    sample_inputs_size: usize,
     is_classification: bool,
 ) -> *mut f32 {
     return if is_classification {
-        predict_pmc_classification(model, sample_inputs, sample__inputs_size)
+        predict_pmc_classification(model, sample_inputs, sample_inputs_size)
     } else {
-        predict_pmc_regression(model, sample_inputs, sample__inputs_size)
+        predict_pmc_regression(model, sample_inputs, sample_inputs_size)
     };
 }
 
@@ -144,4 +161,38 @@ pub extern "C" fn delete_pmc_model(model: *mut PMC) {
     unsafe {
         drop(Box::from_raw(model));
     }
+}
+
+fn forward_pass(model: *mut PMC, sample_inputs: *const f32, sample_inputs_size: usize, is_classification: bool) {
+    unsafe {
+        let sample_inputs_slice = std::slice::from_raw_parts(sample_inputs, sample_inputs_size);
+        let layers = (*model).dimensions.len() - 1;
+        for j in 1..=(*model).dimensions[0] as usize {
+            (*model).X[0][j] = sample_inputs_slice[j - 1];
+        }
+        for layer in 1..=layers {
+            for j in 1..(*model).dimensions[layer] as usize {
+                let mut res = 0.;
+                for i in 0..=(*model).dimensions[layer - 1] as usize {
+                    res += (*model).W[layer][i][j] * (*model).X[layer - 1][i];
+                }
+                (*model).X[layer][j] = res;
+                if is_classification || layer < layers {
+                    (*model).X[layer][j] = f32::tanh((*model).X[layer][j]);
+                }
+            }
+        }
+    }
+}
+
+fn get_portion_from_pointer(flattened_dataset_inputs: *const f32, input_dimensions: i32, k: i32) -> (usize, &'static [f32]) {
+    let start_index = (k * input_dimensions) as usize;
+    let end_index = ((k + 1) * input_dimensions) as usize;
+    let raw_ptr: *const f32 = flattened_dataset_inputs;
+    let length = end_index - start_index + 1;
+
+    let slice: &[f32] = unsafe {
+        std::slice::from_raw_parts(raw_ptr.add(start_index), length)
+    };
+    (length, slice)
 }
