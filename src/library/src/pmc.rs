@@ -75,9 +75,15 @@ pub extern "C" fn new_pmc(neurons_per_layer: *const i32, layer_size_per_neuron: 
 }
 
 #[no_mangle]
-pub extern "C" fn train_pmc_model(model: *mut PMC, dataset_inputs: *const f32, lines: i32, columns: i32,
-                                  dataset_outputs: *const f32, output_columns: i32, alpha: f32, nb_iter: i32,
-                                  is_classification: bool) {
+pub extern "C" fn train_pmc_model(
+    model: *mut PMC,
+    flattened_dataset_inputs: *const f32,
+    dataset_inputs_size: usize,
+    flattened_dataset_outputs: *const f32,
+    dataset_outputs_size: usize,
+    alpha: f32,
+    epochs: i32,
+) {
     unimplemented!()
 }
 
