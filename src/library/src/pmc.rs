@@ -13,12 +13,12 @@ pub struct PMC {
 
 #[no_mangle]
 pub extern "C" fn new_pmc(dimensions_arr: *const i64, layer_size_per_neuron: usize) -> *mut PMC {
-    let neurons_per_layer_slice = unsafe { std::slice::from_raw_parts(dimensions_arr, layer_size_per_neuron) };
+    let dimensions_arr_slice = unsafe { std::slice::from_raw_parts(dimensions_arr, layer_size_per_neuron) };
     let mut rng = thread_rng();
 
     let mut pmc_model = Box::new(PMC {
-        layers: 0,
-        dimensions: neurons_per_layer_slice.to_vec(),
+        layers: (dimensions_arr_slice.len() - 1) as u32,
+        dimensions: dimensions_arr_slice.to_vec(),
         W: Vec::new(),
         X: Vec::new(),
         deltas: vec![vec![0.0; layer_size_per_neuron]],
@@ -28,9 +28,9 @@ pub extern "C" fn new_pmc(dimensions_arr: *const i64, layer_size_per_neuron: usi
     for layer in 0..layer_size_per_neuron {
         pmc_model.W.push(Vec::new());
         if layer != 0 {
-            for weight in 0..(neurons_per_layer_slice[layer - 1] + 1) as usize {
-                pmc_model.W[layer].push(vec![0.0; (neurons_per_layer_slice[layer] + 1) as usize]);
-                for index in 0..(neurons_per_layer_slice[layer] + 1) as usize {
+            for weight in 0..(dimensions_arr_slice[layer - 1] + 1) as usize {
+                pmc_model.W[layer].push(vec![0.0; (dimensions_arr_slice[layer] + 1) as usize]);
+                for index in 0..(dimensions_arr_slice[layer] + 1) as usize {
                     pmc_model.W[layer][weight][index] = rng.gen_range(-1.0..=1.)
                 }
             }
@@ -39,7 +39,7 @@ pub extern "C" fn new_pmc(dimensions_arr: *const i64, layer_size_per_neuron: usi
 
     for layer in 0..layer_size_per_neuron {
         pmc_model.X.push(Vec::new());
-        for weight in 0..(neurons_per_layer_slice[layer] + 1) {
+        for weight in 0..(dimensions_arr_slice[layer] + 1) {
             if weight != 0 {
                 pmc_model.X[layer].push(0.);
             } else {
@@ -68,7 +68,7 @@ pub extern "C" fn train_pmc_model(
         let last_index = (*model).dimensions.len() - 1;
         let nb_outputs = (*model).dimensions[last_index];
         let sample_count = (dataset_inputs_size as f32 / input_dimensions as f32).floor() as i32;
-        let L = (*model).dimensions.len() - 1;
+        let layers = (*model).layers as usize;
         for _epoch in 0..epochs {
             let k = rng.gen_range(0..=sample_count) as i64;
 
@@ -77,14 +77,14 @@ pub extern "C" fn train_pmc_model(
 
             forward_pass(model, inputs_slice.as_ptr(), inputs_slice_length, is_classification);
 
-            for j in 1..=(*model).dimensions[L] as usize {
-                (*model).deltas[L][j] = (*model).X[L][j] - outputs_slice[j - 1];
+            for j in 1..=(*model).dimensions[layers] as usize {
+                (*model).deltas[layers][j] = (*model).X[layers][j] - outputs_slice[j - 1];
                 if is_classification {
-                    (*model).deltas[L][j] *= 1. - (*model).X[L][j] * (*model).X[L][j];
+                    (*model).deltas[layers][j] *= 1. - (*model).X[layers][j] * (*model).X[layers][j];
                 }
             }
 
-            for l in (1..L).rev() {
+            for l in (1..layers).rev() {
                 for i in 1..=(*model).dimensions[l - 1] as usize {
                     let mut res: f32 = 0.;
                     for j in 1..=(*model).dimensions[l] as usize {
@@ -94,7 +94,7 @@ pub extern "C" fn train_pmc_model(
                 }
             }
 
-            for l in 1..L {
+            for l in 1..layers {
                 for i in 0..=(*model).dimensions[l - 1] as usize {
                     for j in 1..=(*model).dimensions[l] as usize {
                         (*model).W[l][i][j] -= alpha * (*model).X[l - 1][i] * (*model).deltas[l][j];
