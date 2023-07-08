@@ -17,7 +17,7 @@ pub extern "C" fn new_pmc(dimensions_arr: *const i64, layer_size_per_neuron: usi
     let mut rng = thread_rng();
 
     let mut pmc_model = Box::new(PMC {
-        layers: (dimensions_arr_slice.len() - 1) as u32,
+        layers: (layer_size_per_neuron - 1) as u32,
         dimensions: dimensions_arr_slice.to_vec(),
         W: Vec::new(),
         X: Vec::new(),
