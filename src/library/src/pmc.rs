@@ -1,6 +1,12 @@
 use rand::{Rng, thread_rng};
 use std::f32;
 
+use std::os::raw::c_char;
+use std::ffi::CString;
+use libc::c_void;
+use libc::c_int;
+
+
 #[repr(C)]
 pub struct PMC {
     layers: u32,
@@ -105,6 +111,7 @@ pub extern "C" fn train_pmc_model(
     }
 }
 
+
 #[no_mangle]
 pub extern "C" fn predict_pmc_model(
     model: *mut PMC,
@@ -137,6 +144,13 @@ fn predict_pmc_classification(
     }
 }
 
+#[no_mangle]
+pub extern "C" fn get_X_len(model: *mut PMC) -> i32 {
+    (unsafe {
+        (*model).X[(*model).X.len() - 1].len() - 1
+    }) as i32
+}
+
 fn predict_pmc_regression(
     model: *mut PMC,
     sample_inputs: *const f32,
@@ -160,7 +174,7 @@ fn predict_pmc_regression(
 #[no_mangle]
 pub extern "C" fn delete_pmc_model(model: *mut PMC) {
     unsafe {
-        drop(Box::from_raw(model));
+        Box::from_raw(model);
     }
 }
 
