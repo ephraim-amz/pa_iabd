@@ -64,7 +64,7 @@ if __name__ == "__main__":
         "epochs": ctypes.c_int32,
         "is_classification": ctypes.c_bool
     }
-    lib.train_pmc_model.argtypes = list(new_pmc_model_arg_dict.values())
+    lib.train_pmc_model.argtypes = list(train_pmc_model_arg_dict.values())
     lib.train_pmc_model.restype = None
 
     predict_pmc_model_arg_dict = {
@@ -79,3 +79,53 @@ if __name__ == "__main__":
 
     lib.delete_pmc_model.argtypes = [ctypes.POINTER(PMC)]
     lib.delete_pmc_model.restype = None
+
+    X = np.array([
+        [1, 1],
+        [2, 3],
+        [3, 3]
+    ])
+    Y = np.array([
+        1,
+        -1,
+        -1
+    ])
+
+    get_X_len_arg_dict = {
+        "model": ctypes.POINTER(PMC)
+    }
+
+    lib.get_X_len.argtypes = list(get_X_len_arg_dict.values())
+    lib.get_X_len.restype = ctypes.c_int
+
+    flattened_inputs = X.flatten().astype(np.float32)
+    arr_inputs = (ctypes.c_float * len(flattened_inputs))(*flattened_inputs)
+
+    flattened_outputs = Y.flatten().astype(np.float32)
+    arr_outputs = (ctypes.c_float * len(flattened_outputs))(*flattened_outputs)
+
+    colors = ["blue" if output >= 0 else "red" for output in Y]
+
+    dimensions = [2, 1]
+    dimensions_arr = (ctypes.c_int64 * len(dimensions))(*dimensions)
+
+    pmc_model = lib.new_pmc(dimensions_arr, len(dimensions_arr))
+    """
+    test_dataset = [[x1 / 10, x2 / 10] for x1 in range(-10, 20) for x2 in range(-10, 20)]
+
+    lib.train_pmc_model(pmc_model, arr_inputs, len(flattened_inputs), arr_outputs, ctypes.c_float(0.001), ctypes.c_int32(100000), ctypes.c_bool(False))
+
+    predicted_outputs = []
+    for p in test_dataset:
+        arr_res1 = ctypes.c_float * len(p)
+        arr_res2 = arr_res1(*p)
+        prediction = lib.predict_classification(pmc_model, arr_res2, len(p))
+        arr = np.ctypeslib.as_array(prediction, (lib.get_X_len(pmc_model),))
+        predicted_outputs.append(arr[0])
+
+    predicted_outputs_colors = ['blue' if label >= 0 else 'red' for label in predicted_outputs]
+    plt.scatter([p[0] for p in test_dataset], [p[1] for p in test_dataset], c=predicted_outputs_colors)
+    plt.scatter([p[0] for p in X], [p[1] for p in X], c=colors, s=200)
+    plt.show()
+    """
+    # lib.delete_model(pmc_model)
