@@ -64,7 +64,7 @@ pub extern "C" fn train_regression(
 
         let W = Xi.transpose() * &Xi;
 
-        let W_inv = W.try_inverse().expect("Matrix is not invertible");
+        let W_inv = W.try_inverse().expect("Matrice non inversible");
 
         let W2 = &W_inv * Xi.transpose();
 

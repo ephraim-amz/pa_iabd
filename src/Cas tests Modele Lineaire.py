@@ -2,6 +2,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 import ctypes
 import sys
+import os
+
+os.putenv('RUST_BACKTRACE', 'full')
+
 
 if __name__ == "__main__":
     computer_plateform = sys.platform
@@ -104,9 +108,9 @@ if __name__ == "__main__":
         predicted_outputs.append(curr)
 
     predicted_outputs_colors = ['blue' if label == 0 else 'red' for label in predicted_outputs]
-    # plt.scatter([p[0] for p in test_dataset_inputs], [p[1] for p in test_dataset_inputs], c=predicted_outputs_colors)
-    # plt.scatter([p[0] for p in X], [p[1] for p in X], c=colors, s=200)
-    # plt.show()
+    plt.scatter([p[0] for p in test_dataset_inputs], [p[1] for p in test_dataset_inputs], c=predicted_outputs_colors)
+    plt.scatter([p[0] for p in X], [p[1] for p in X], c=colors, s=200)
+    plt.show()
     lib.delete_model(linear_classifier_object)
 
     # cas multiple
@@ -114,7 +118,7 @@ if __name__ == "__main__":
 
     X = np.concatenate(
         [np.random.random((50, 2)) * 0.9 + np.array([1, 1]), np.random.random((50, 2)) * 0.9 + np.array([2, 2])])
-    Y = np.concatenate([np.ones((50, 1)), np.ones((50, 1)) * -1.0])
+    Y = np.concatenate([np.ones((50, 1)), np.ones((50, 1)) * -1.0, np.ones((50, 1)) * -1.0])
 
     flattened_inputs = X.flatten().astype(np.float32)
     arr_inputs = flattened_inputs.ctypes.data_as(ctypes.POINTER(ctypes.c_float))
@@ -138,7 +142,7 @@ if __name__ == "__main__":
 
     predicted_outputs_colors = ['blue' if label == 1 else 'red' for label in predicted_outputs]
     plt.scatter([p[0] for p in test_dataset_inputs], [p[1] for p in test_dataset_inputs], c=predicted_outputs_colors)
-    plt.scatter([p[0] for p in X], [p[1] for p in X], c=colors, s=200)
+    plt.scatter([p[0] for p in X], [p[1] for p in X], c=colors[0:100], s=200)
     plt.show()
     lib.delete_model(linear_classifier_object)
 
@@ -173,3 +177,40 @@ if __name__ == "__main__":
     plt.scatter([p[0] for p in X], [p[1] for p in X], c=colors, s=200)
     plt.show()
     lib.delete_model(linear_classifier_object)
+
+    # Régression
+
+    X = np.array([
+        [1],
+        [2]
+    ])
+    Y = np.array([
+        2,
+        3
+    ])
+
+    linear_regression_object = lib.new(1)
+    flattened_inputs = X.flatten().astype(np.float32)
+    arr_inputs = flattened_inputs.ctypes.data_as(ctypes.POINTER(ctypes.c_float))
+
+    flattened_outputs = Y.flatten().astype(np.float32)
+    arr_outputs = flattened_outputs.ctypes.data_as(ctypes.POINTER(ctypes.c_float))
+
+    lib.train_regression(linear_regression_object, arr_inputs, arr_outputs, len(flattened_inputs), len(flattened_outputs))
+
+    test_inputs = np.array(test_dataset_inputs, dtype=np.float32, order='C')
+    flattened_test_inputs = test_inputs.flatten()
+    arr_test_inputs = flattened_test_inputs.ctypes.data_as(ctypes.POINTER(ctypes.c_float))
+
+    predicted_outputs = []
+    for p in test_dataset_inputs:
+        arr_res2 = (ctypes.c_float * 1)(*p)
+        print(arr_res2)
+        d = lib.predict_regression(linear_regression_object, arr_res2, 1)
+        predicted_outputs.append(d)
+
+    plt.plot([p[0] for p in test_dataset_inputs], predicted_outputs)
+    plt.scatter([p[0] for p in test_dataset_inputs], predicted_outputs, s=200)
+    plt.axis([-10, 10, -10, 10])
+    plt.show()
+    lib.delete_model(linear_regression_object)
