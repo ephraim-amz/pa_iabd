@@ -2,6 +2,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 import ctypes
 import sys
+import os
+
+os.putenv("RUST_BACKTRACE", "full")
 
 if __name__ == "__main__":
     computer_plateform = sys.platform
@@ -110,7 +113,6 @@ if __name__ == "__main__":
     dimensions_arr = (ctypes.c_int64 * len(dimensions))(*dimensions)
 
     pmc_model = lib.new_pmc(dimensions_arr, len(dimensions_arr))
-    """
     test_dataset = [[x1 / 10, x2 / 10] for x1 in range(-10, 20) for x2 in range(-10, 20)]
 
     lib.train_pmc_model(pmc_model, arr_inputs, len(flattened_inputs), arr_outputs, ctypes.c_float(0.001), ctypes.c_int32(100000), ctypes.c_bool(False))
@@ -119,7 +121,7 @@ if __name__ == "__main__":
     for p in test_dataset:
         arr_res1 = ctypes.c_float * len(p)
         arr_res2 = arr_res1(*p)
-        prediction = lib.predict_classification(pmc_model, arr_res2, len(p))
+        prediction = lib.predict_pmc_model(pmc_model, arr_res2, len(p), ctypes.c_bool(True))
         arr = np.ctypeslib.as_array(prediction, (lib.get_X_len(pmc_model),))
         predicted_outputs.append(arr[0])
 
@@ -127,5 +129,4 @@ if __name__ == "__main__":
     plt.scatter([p[0] for p in test_dataset], [p[1] for p in test_dataset], c=predicted_outputs_colors)
     plt.scatter([p[0] for p in X], [p[1] for p in X], c=colors, s=200)
     plt.show()
-    """
-    # lib.delete_model(pmc_model)
+    lib.delete_pmc_model(pmc_model)
