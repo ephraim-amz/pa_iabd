@@ -99,15 +99,14 @@ if __name__ == "__main__":
 
     predicted_outputs = []
     for p in test_dataset_inputs:
-        arr_res1 = ctypes.c_float * len(p)
-        arr_res2 = arr_res1(*p)
-        curr = lib.predict_classification(linear_classifier_object, arr_res2, len(p))
+        arr_res1 = (ctypes.c_float * len(p))(*p)
+        curr = lib.predict_classification(linear_classifier_object, arr_res1, len(p))
         predicted_outputs.append(curr)
 
     predicted_outputs_colors = ['blue' if label == 0 else 'red' for label in predicted_outputs]
-    plt.scatter([p[0] for p in test_dataset_inputs], [p[1] for p in test_dataset_inputs], c=predicted_outputs_colors)
-    plt.scatter([p[0] for p in X], [p[1] for p in X], c=colors, s=200)
-    plt.show()
+    # plt.scatter([p[0] for p in test_dataset_inputs], [p[1] for p in test_dataset_inputs], c=predicted_outputs_colors)
+    # plt.scatter([p[0] for p in X], [p[1] for p in X], c=colors, s=200)
+    # plt.show()
     lib.delete_model(linear_classifier_object)
 
     # cas multiple
@@ -124,7 +123,7 @@ if __name__ == "__main__":
     arr_outputs = flattened_outputs.ctypes.data_as(ctypes.POINTER(ctypes.c_float))
 
     test_dataset_inputs = [[float(x1) / 6, float(x2) / 6] for x1 in range(0, 20) for x2 in
-                    range(0, 20)]
+                           range(0, 20)]
     colors = ["blue" if output >= 0 else "red" for output in Y]
 
     lib.train_classification(linear_classifier_object, arr_inputs, arr_outputs, len(flattened_inputs),
