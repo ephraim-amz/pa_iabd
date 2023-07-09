@@ -83,10 +83,17 @@ pub extern "C" fn train_pmc_model(
 
             forward_pass(model, inputs_slice.as_ptr(), inputs_slice_length, is_classification);
 
-            for j in 1..=(*model).dimensions[layers] as usize {
-                (*model).deltas[layers][j] = (*model).X[layers][j] - outputs_slice[j - 1];
-                if is_classification {
-                    (*model).deltas[layers][j] *= 1. - (*model).X[layers][j] * (*model).X[layers][j];
+            for j in 1..(*model).dimensions[layers] as usize {
+                if j == 1 {
+                    (*model).deltas[layers][j] = (*model).X[layers][j] - outputs_slice[j - 1];
+                    if is_classification {
+                        (*model).deltas[layers][j] *= 1. - (*model).X[layers][j] * (*model).X[layers][j];
+                    }
+                } else {
+                    (*model).deltas[layers][j] = (*model).X[layers][j] - outputs_slice[j];
+                    if is_classification {
+                        (*model).deltas[layers][j] *= 1. - (*model).X[layers][j] * (*model).X[layers][j];
+                    }
                 }
             }
 
@@ -173,9 +180,7 @@ fn predict_pmc_regression(
 
 #[no_mangle]
 pub extern "C" fn delete_pmc_model(model: *mut PMC) {
-    unsafe {
-        Box::from_raw(model);
-    }
+    drop(model);
 }
 
 fn forward_pass(model: *mut PMC, sample_inputs: *const f32, sample_inputs_size: usize, is_classification: bool) {
