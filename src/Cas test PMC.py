@@ -17,8 +17,8 @@ if __name__ == "__main__":
     lib = ctypes.CDLL(library_mapping.get(computer_plateform))
 
 
-    class Veci32(ctypes.Structure):
-        _fields_ = [("data", ctypes.POINTER(ctypes.c_int32)),
+    class Veci64(ctypes.Structure):
+        _fields_ = [("data", ctypes.POINTER(ctypes.c_int64)),
                     ("length", ctypes.c_size_t),
                     ("capacity", ctypes.c_size_t)]
 
@@ -44,8 +44,8 @@ if __name__ == "__main__":
     class PMC(ctypes.Structure):
         _fields_ = [
             ('layers', ctypes.c_uint),
-            ('dimensions', ctypes.POINTER(ctypes.c_int64)),
-            ('X', ctypes.POINTER(Vec3df32)),
+            ('dimensions', ctypes.POINTER(Veci64)),
+            ('X', ctypes.POINTER(Vec2df32)),
             ('W', ctypes.POINTER(Vec2df32)),
             ('deltas', ctypes.POINTER(Vec2df32)),
         ]
@@ -113,15 +113,147 @@ if __name__ == "__main__":
     dimensions_arr = (ctypes.c_int64 * len(dimensions))(*dimensions)
 
     pmc_model = lib.new_pmc(dimensions_arr, len(dimensions_arr))
-    test_dataset = [[x1 / 10, x2 / 10] for x1 in range(-10, 20) for x2 in range(-10, 20)]
 
-    lib.train_pmc_model(pmc_model, arr_inputs, len(flattened_inputs), arr_outputs, ctypes.c_float(0.001), ctypes.c_int32(100000), ctypes.c_bool(False))
+    lib.train_pmc_model(pmc_model, arr_inputs, len(flattened_inputs), arr_outputs, ctypes.c_float(0.001),
+                        ctypes.c_int32(100000), ctypes.c_bool(True))
+
+    test_dataset = [[x1 / 10, x2 / 10] for x1 in range(-10, 20) for x2 in range(-10, 20)]
+    sample_inputs = np.array(test_dataset, dtype=np.float32)
+    flattened_inputs = sample_inputs.flatten()
+
+    arr_inputs = (ctypes.c_float * len(flattened_inputs))(*flattened_inputs)
 
     predicted_outputs = []
-    for p in test_dataset:
-        arr_res1 = ctypes.c_float * len(p)
-        arr_res2 = arr_res1(*p)
-        prediction = lib.predict_pmc_model(pmc_model, arr_res2, len(p), ctypes.c_bool(True))
+    for p in range(len(test_dataset)):
+        prediction = lib.predict_pmc_model(pmc_model, arr_inputs, len(flattened_inputs), ctypes.c_bool(True))
+        arr = np.ctypeslib.as_array(prediction, (lib.get_X_len(pmc_model),))
+        predicted_outputs.append(arr[0])
+
+    predicted_outputs_colors = ['blue' if label >= 0 else 'red' for label in predicted_outputs]
+    plt.scatter([p[0] for p in test_dataset], [p[1] for p in test_dataset], c=predicted_outputs_colors)
+    plt.scatter([p[0] for p in X], [p[1] for p in X], c=colors, s=200)
+    plt.show()
+    lib.delete_pmc_model(pmc_model)
+
+    # Linear Multiple
+
+    X = np.concatenate(
+        [np.random.random((50, 2)) * 0.9 + np.array([1, 1]), np.random.random((50, 2)) * 0.9 + np.array([2, 2])])
+    Y = np.concatenate([np.ones((50, 1)), np.ones((50, 1)) * -1.0])
+
+    flattened_inputs = X.flatten().astype(np.float32)
+    arr_inputs = (ctypes.c_float * len(flattened_inputs))(*flattened_inputs)
+
+    flattened_outputs = Y.flatten().astype(np.float32)
+    arr_outputs = (ctypes.c_float * len(flattened_outputs))(*flattened_outputs)
+
+    colors = ["blue" if output >= 0 else "red" for output in Y]
+
+    dimensions = [2, 1]
+    dimensions_arr = (ctypes.c_int64 * len(dimensions))(*dimensions)
+
+    pmc_model = lib.new_pmc(dimensions_arr, len(dimensions_arr))
+
+    lib.train_pmc_model(pmc_model, arr_inputs, len(flattened_inputs), arr_outputs, ctypes.c_float(0.001),
+                        ctypes.c_int32(100000), ctypes.c_bool(True))
+
+    test_dataset = [[x1 / 9, x2 / 9] for x1 in range(1, 30) for x2 in range(-1, 30)]
+    sample_inputs = np.array(test_dataset, dtype=np.float32)
+    flattened_inputs = sample_inputs.flatten()
+
+    arr_inputs = (ctypes.c_float * len(flattened_inputs))(*flattened_inputs)
+
+    predicted_outputs = []
+    for p in range(len(test_dataset)):
+        prediction = lib.predict_pmc_model(pmc_model, arr_inputs, len(flattened_inputs), ctypes.c_bool(True))
+        arr = np.ctypeslib.as_array(prediction, (lib.get_X_len(pmc_model),))
+        predicted_outputs.append(arr[0])
+
+    predicted_outputs_colors = ['blue' if label >= 0 else 'red' for label in predicted_outputs]
+    plt.scatter([p[0] for p in test_dataset], [p[1] for p in test_dataset], c=predicted_outputs_colors)
+    plt.scatter([p[0] for p in X], [p[1] for p in X], c=colors, s=200)
+    plt.show()
+    lib.delete_pmc_model(pmc_model)
+
+    # XOR
+
+    """
+    X = np.array([[1, 0], [0, 1], [0, 0], [1, 1]])
+    Y = np.array([1, 1, -1, -1])
+
+    flattened_inputs = X.flatten().astype(np.float32)
+    arr_inputs = (ctypes.c_float * len(flattened_inputs))(*flattened_inputs)
+
+    flattened_outputs = Y.flatten().astype(np.float32)
+    arr_outputs = (ctypes.c_float * len(flattened_outputs))(*flattened_outputs)
+
+    colors = ["blue" if output >= 0 else "red" for output in Y]
+
+    dimensions = [2, 2, 1]
+    dimensions_arr = (ctypes.c_int64 * len(dimensions))(*dimensions)
+
+    pmc_model = lib.new_pmc(dimensions_arr, len(dimensions_arr))
+
+    lib.train_pmc_model(pmc_model, arr_inputs, len(flattened_inputs), arr_outputs, ctypes.c_float(0.001),
+                        ctypes.c_int32(100000), ctypes.c_bool(True))
+
+    test_dataset = [[x1 / 10, x2 / 10] for x1 in range(-10, 20) for x2 in range(-10, 20)]
+    sample_inputs = np.array(test_dataset, dtype=np.float32)
+    flattened_inputs = sample_inputs.flatten()
+
+    arr_inputs = (ctypes.c_float * len(flattened_inputs))(*flattened_inputs)
+
+    predicted_outputs = []
+    for p in range(len(test_dataset)):
+        prediction = lib.predict_pmc_model(pmc_model, arr_inputs, len(flattened_inputs), ctypes.c_bool(True))
+        arr = np.ctypeslib.as_array(prediction, (lib.get_X_len(pmc_model),))
+        predicted_outputs.append(arr[0])
+
+    predicted_outputs_colors = ['blue' if label >= 0 else 'red' for label in predicted_outputs]
+    plt.scatter([p[0] for p in test_dataset], [p[1] for p in test_dataset], c=predicted_outputs_colors)
+    plt.scatter([p[0] for p in X], [p[1] for p in X], c=colors, s=200)
+    plt.show()
+    lib.delete_pmc_model(pmc_model)
+
+    """
+
+    X = np.random.random((500, 2)) * 2.0 - 1.0
+    Y = np.array([[1, 0, 0] if -p[0] - p[1] - 0.5 > 0 and p[1] < 0 and p[0] - p[1] - 0.5 < 0 else
+                  [0, 1, 0] if -p[0] - p[1] - 0.5 < 0 and p[1] > 0 and p[0] - p[1] - 0.5 < 0 else
+                  [0, 0, 1] if -p[0] - p[1] - 0.5 < 0 and p[1] < 0 and p[0] - p[1] - 0.5 > 0 else
+                  [0, 0, 0] for p in X])
+
+    X = X[[not np.all(arr == [0, 0, 0]) for arr in Y]]
+    Y = Y[[not np.all(arr == [0, 0, 0]) for arr in Y]]
+    predicted_outputs_colors = ["blue" if np.argmax(output) == 0 else ("red" if np.argmax(output) == 1 else "green") for
+                                output in predicted_outputs]
+
+    flattened_inputs = X.flatten().astype(np.float32)
+    arr_inputs = (ctypes.c_float * len(flattened_inputs))(*flattened_inputs)
+
+    flattened_outputs = Y.flatten().astype(np.float32)
+    arr_outputs = (ctypes.c_float * len(flattened_outputs))(*flattened_outputs)
+
+    colors = ["blue" if np.argmax(output) == 0 else ("red" if np.argmax(output) == 1 else "green") for output in
+              Y]
+
+    dimensions = [2, 3]
+    dimensions_arr = (ctypes.c_int64 * len(dimensions))(*dimensions)
+
+    pmc_model = lib.new_pmc(dimensions_arr, len(dimensions_arr))
+
+    lib.train_pmc_model(pmc_model, arr_inputs, len(flattened_inputs), arr_outputs, ctypes.c_float(0.001),
+                        ctypes.c_int32(100000), ctypes.c_bool(True))
+
+    test_dataset = [[x1 / 10, x2 / 10] for x1 in range(-10, 10) for x2 in range(-10, 10)]
+    sample_inputs = np.array(test_dataset, dtype=np.float32)
+    flattened_inputs = sample_inputs.flatten()
+
+    arr_inputs = (ctypes.c_float * len(flattened_inputs))(*flattened_inputs)
+
+    predicted_outputs = []
+    for p in range(len(test_dataset)):
+        prediction = lib.predict_pmc_model(pmc_model, arr_inputs, len(flattened_inputs), ctypes.c_bool(True))
         arr = np.ctypeslib.as_array(prediction, (lib.get_X_len(pmc_model),))
         predicted_outputs.append(arr[0])
 
