@@ -27,7 +27,7 @@ pub extern "C" fn new_pmc(dimensions_arr: *const i64, layer_size_per_neuron: usi
         dimensions: dimensions_arr_slice.to_vec(),
         W: Vec::new(),
         X: Vec::new(),
-        deltas: vec![vec![0.0; layer_size_per_neuron]],
+        deltas: vec![vec![0.0; dimensions_arr_slice[layer_size_per_neuron -1] as usize]; layer_size_per_neuron],
     });
 
 
@@ -78,13 +78,14 @@ pub extern "C" fn train_pmc_model(
         for _epoch in 0..epochs {
             let k = rng.gen_range(0..=sample_count) as i64;
 
-            let (inputs_slice_length, inputs_slice) = get_portion_from_pointer(flattened_dataset_inputs, input_dimensions, k);
-            let (_, outputs_slice) = get_portion_from_pointer(flattened_dataset_outputs, nb_outputs, k);
+            let (inputs_slice, inputs_slice_length) =
+                get_portion_from_pointer(flattened_dataset_inputs, input_dimensions, k);
+            let (outputs_slice, outputs_size) = get_portion_from_pointer(flattened_dataset_outputs, nb_outputs, k);
 
             forward_pass(model, inputs_slice.as_ptr(), inputs_slice_length, is_classification);
 
             let predicted_outputs = (*model).X[last_index][1..].to_vec();
-            let targets = outputs_slice.to_vec();
+            let targets = outputs_slice;
 
             let predicted_outputs_size = predicted_outputs.len();
             let mut losses_vector = Vec::with_capacity(predicted_outputs_size);
@@ -131,8 +132,15 @@ pub extern "C" fn train_pmc_model(
                 }
             }
         }
+
+        for k in 0..sample_count as i64{
+            let (inputs_slice, inputs_slice_length) =
+                get_portion_from_pointer(flattened_dataset_inputs, input_dimensions, k);
+            forward_pass(model, inputs_slice.as_ptr(), inputs_slice_length, is_classification);
+        }
     }
 }
+
 
 
 #[no_mangle]
@@ -161,11 +169,12 @@ fn predict_pmc_classification(
         forward_pass(model, sample_inputs, sample_inputs_size, true);
 
         for i in 0..size {
-            *prediction_vector.add(i) = (*model).X[last_element][(i + 1)];
+            *prediction_vector.add(i) = (*model).X[last_element][(i)];
         }
         prediction_vector
     }
 }
+
 
 #[no_mangle]
 pub extern "C" fn get_X_len(model: *mut PMC) -> i32 {
@@ -184,36 +193,39 @@ fn predict_pmc_regression(
         let size = (*model).X[last_element].len() - 1;
         let prediction_vector = Box::into_raw(vec![0.0; size].into_boxed_slice()) as *mut f32;
 
-
         forward_pass(model, sample_inputs, sample_inputs_size, false);
 
         for i in 0..size {
-            *prediction_vector.add(i) = (*model).X[last_element][(i + 1)];
+            *prediction_vector.add(i) = (*model).X[last_element][(i)];
         }
         prediction_vector
     }
 }
 
+
 #[no_mangle]
 pub extern "C" fn delete_pmc_model(model: *mut PMC) {
-    drop(model);
+    unsafe {
+        Box::from_raw(model);
+    }
 }
+
 
 fn forward_pass(model: *mut PMC, sample_inputs: *const f32, sample_inputs_size: usize, is_classification: bool) {
     unsafe {
         let sample_inputs_slice = std::slice::from_raw_parts(sample_inputs, sample_inputs_size);
-        let layers = (*model).dimensions.len() - 1;
-        for j in 1..=(*model).dimensions[0] as usize {
-            (*model).X[0][j] = sample_inputs_slice[j - 1];
+        let layers = (*model).dimensions.len();
+        for j in 0..sample_inputs_size {
+            (*model).X[0][j] = sample_inputs_slice[j];
         }
-        for layer in 1..=layers {
-            for j in 1..(*model).dimensions[layer] as usize {
-                let mut res = 0.;
+        for layer in 1..layers {
+            for j in 1..=(*model).dimensions[layer] as usize {
+                let mut res = 0.0;
                 for i in 0..=(*model).dimensions[layer - 1] as usize {
                     res += (*model).W[layer][i][j] * (*model).X[layer - 1][i];
                 }
                 (*model).X[layer][j] = res;
-                if is_classification || layer < layers {
+                if is_classification || layer < layers - 1 {
                     (*model).X[layer][j] = f32::tanh((*model).X[layer][j]);
                 }
             }
@@ -221,14 +233,16 @@ fn forward_pass(model: *mut PMC, sample_inputs: *const f32, sample_inputs_size: 
     }
 }
 
-fn get_portion_from_pointer(flattened_dataset_inputs: *const f32, input_dimensions: i64, k: i64) -> (usize, &'static [f32]) {
+fn get_portion_from_pointer(
+    flattened_dataset_inputs: *const f32,
+    input_dimensions: i64,
+    k: i64,
+) -> (&'static [f32], usize) {
     let start_index = (k * input_dimensions) as usize;
-    let end_index = ((k + 1) * input_dimensions) as usize;
     let raw_ptr: *const f32 = flattened_dataset_inputs;
-    let length = end_index - start_index + 1;
 
-    let slice: &[f32] = unsafe {
-        std::slice::from_raw_parts(raw_ptr.add(start_index), length)
-    };
-    (length, slice)
+    unsafe {
+        let slice = std::slice::from_raw_parts(raw_ptr.add(start_index), input_dimensions as usize);
+        (slice, input_dimensions as usize)
+    }
 }
