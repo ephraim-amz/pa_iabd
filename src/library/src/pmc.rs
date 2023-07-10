@@ -1,7 +1,7 @@
 use rand::{Rng, thread_rng};
 use std::f32;
 use std::ffi::CString;
-use libc::{c_char, exit, puts};
+use libc::{c_char, puts};
 
 
 #[repr(C)]

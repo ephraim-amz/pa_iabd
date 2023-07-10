@@ -162,8 +162,8 @@ pub extern "C" fn predict_classification(
 pub extern "C" fn delete_model(lm: *mut LinearClassifier) {
     unsafe {
         if !lm.is_null() {
-            drop((*lm).weights);
-            drop(lm);
+            Box::from_raw((*lm).weights);
+            Box::from_raw(lm);
         }
     }
 }

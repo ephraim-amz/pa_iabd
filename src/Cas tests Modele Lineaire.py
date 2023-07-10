@@ -6,7 +6,6 @@ import os
 
 os.putenv('RUST_BACKTRACE', 'full')
 
-
 if __name__ == "__main__":
     computer_plateform = sys.platform
     library_mapping = {
@@ -113,6 +112,7 @@ if __name__ == "__main__":
     plt.show()
     lib.delete_model(linear_classifier_object)
 
+    """
     # cas multiple
     linear_classifier_object = lib.new(2)
 
@@ -214,3 +214,4 @@ if __name__ == "__main__":
     plt.axis([-10, 10, -10, 10])
     plt.show()
     lib.delete_model(linear_regression_object)
+    """
