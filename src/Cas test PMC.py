@@ -9,7 +9,7 @@ os.putenv("RUST_BACKTRACE", "full")
 if __name__ == "__main__":
     computer_plateform = sys.platform
     library_mapping = {
-        "linux": r"/home/ephraim/IABD/pa_iabd/src/library/target/debug/liblibrary.so",
+        "linux": r"./library/target/debug/liblibrary.so",
         "windows": r"./library/target/debug/liblibrary.dll",
         "darwin": r"./library/target/debug/liblibrary.dylib",
     }
@@ -76,30 +76,20 @@ if __name__ == "__main__":
         "sample_inputs_size": ctypes.c_size_t,
         "is_classification": ctypes.c_bool
     }
-
     lib.predict_pmc_model.argtypes = list(predict_pmc_model_arg_dict.values())
     lib.predict_pmc_model.restype = ctypes.POINTER(ctypes.c_float)
 
     lib.delete_pmc_model.argtypes = [ctypes.POINTER(PMC)]
     lib.delete_pmc_model.restype = None
 
-    X = np.array([
-        [1, 1],
-        [2, 3],
-        [3, 3]
-    ])
-    Y = np.array([
-        1,
-        -1,
-        -1
-    ])
-
     get_X_len_arg_dict = {
         "model": ctypes.POINTER(PMC)
     }
-
     lib.get_X_len.argtypes = list(get_X_len_arg_dict.values())
     lib.get_X_len.restype = ctypes.c_int
+
+    X = np.array([[1, 1], [2, 3], [3, 3]])
+    Y = np.array([1, -1, -1])
 
     flattened_inputs = X.flatten().astype(np.float32)
     arr_inputs = (ctypes.c_float * len(flattened_inputs))(*flattened_inputs)
@@ -114,26 +104,40 @@ if __name__ == "__main__":
 
     pmc_model = lib.new_pmc(dimensions_arr, len(dimensions_arr))
 
-    lib.train_pmc_model(pmc_model, arr_inputs, len(flattened_inputs), arr_outputs, ctypes.c_float(0.001),
-                        ctypes.c_int32(100000), ctypes.c_bool(True))
+    lib.train_pmc_model(
+        pmc_model,
+        arr_inputs,
+        len(flattened_inputs),
+        arr_outputs,
+        ctypes.c_float(0.001),
+        ctypes.c_int32(100),
+        ctypes.c_bool(True),
+    )
 
-    test_dataset = [[x1 / 10, x2 / 10] for x1 in range(-10, 20) for x2 in range(-10, 20)]
+    test_dataset = [[x1 / 10, x2 / 10] for x1 in range(10, 40) for x2 in range(10, 40)]
     sample_inputs = np.array(test_dataset, dtype=np.float32)
     flattened_inputs = sample_inputs.flatten()
-
     arr_inputs = (ctypes.c_float * len(flattened_inputs))(*flattened_inputs)
 
-    predicted_outputs = []
-    for p in range(len(test_dataset)):
-        prediction = lib.predict_pmc_model(pmc_model, arr_inputs, len(flattened_inputs), ctypes.c_bool(True))
-        arr = np.ctypeslib.as_array(prediction, (lib.get_X_len(pmc_model),))
-        predicted_outputs.append(arr[0])
+    predicted_outputs_ptr = lib.predict_pmc_model(
+        pmc_model,
+        arr_inputs,
+        len(flattened_inputs),
+        ctypes.c_bool(True),
+    )
+    predicted_outputs = np.ctypeslib.as_array(
+        predicted_outputs_ptr,
+        shape=(lib.get_X_len(pmc_model),),
+    )
 
-    predicted_outputs_colors = ['blue' if label >= 0 else 'red' for label in predicted_outputs]
-    plt.scatter([p[0] for p in test_dataset], [p[1] for p in test_dataset], c=predicted_outputs_colors)
+    predicted_outputs_colors = ["blue" if label >= 0 else "red" for label in predicted_outputs]
+    plt.scatter([p[0] for p in test_dataset], [p[1] for p in test_dataset], c=predicted_outputs_colors, s=2)
     plt.scatter([p[0] for p in X], [p[1] for p in X], c=colors, s=200)
     plt.show()
+
     lib.delete_pmc_model(pmc_model)
+
+    """
 
     # Linear Multiple
 
@@ -177,7 +181,7 @@ if __name__ == "__main__":
 
     # XOR
 
-    """
+
     X = np.array([[1, 0], [0, 1], [0, 0], [1, 1]])
     Y = np.array([1, 1, -1, -1])
 
@@ -214,9 +218,8 @@ if __name__ == "__main__":
     plt.scatter([p[0] for p in X], [p[1] for p in X], c=colors, s=200)
     plt.show()
     lib.delete_pmc_model(pmc_model)
-
-    """
-
+    
+    # Multi Linear 3 Classes
     X = np.random.random((500, 2)) * 2.0 - 1.0
     Y = np.array([[1, 0, 0] if -p[0] - p[1] - 0.5 > 0 and p[1] < 0 and p[0] - p[1] - 0.5 < 0 else
                   [0, 1, 0] if -p[0] - p[1] - 0.5 < 0 and p[1] > 0 and p[0] - p[1] - 0.5 < 0 else
@@ -262,3 +265,4 @@ if __name__ == "__main__":
     plt.scatter([p[0] for p in X], [p[1] for p in X], c=colors, s=200)
     plt.show()
     lib.delete_pmc_model(pmc_model)
+    """
