@@ -1,11 +1,12 @@
 # Projet annuel 3IABD2
 
-Ceci est la branche _dataset-constitution_. Cette branche contiendra le code relatif à la collection des images via web scraping et autres moyens + les images collectés
+Ceci est la branche ML. Elle compotera le code relatif à l'implémentation du modèle linéaire en Rust.
 
-## Constitution du dataset :
+## Fonctions du modèle linéaire :
 
-- WebScraping d'images via moteur de recherche ou site de banque d'images (Google Images, Pexels, Getty etc..)
-- Recherche d'images via réseaux sociaux (Twitter instagram)
+- Création d'un nouvel objet modèle linéaire
+- Implémentation de la fonction d'entraînement du modèle
+- Implémentation de la fonction de prédiction du modèle linéaire
 
 
 *Ephraïm Amezian, Damien Nadjar, Zeineb Rekik, Rayan Stambouli 3IABD 2* 
