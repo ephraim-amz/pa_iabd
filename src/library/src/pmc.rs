@@ -83,27 +83,43 @@ pub extern "C" fn train_pmc_model(
 
             forward_pass(model, inputs_slice.as_ptr(), inputs_slice_length, is_classification);
 
-            for j in 1..(*model).dimensions[layers] as usize {
-                if j == 1 {
-                    (*model).deltas[layers][j] = (*model).X[layers][j] - outputs_slice[j - 1];
-                    if is_classification {
-                        (*model).deltas[layers][j] *= 1. - (*model).X[layers][j] * (*model).X[layers][j];
-                    }
+            let predicted_outputs = (*model).X[last_index][1..].to_vec();
+            let targets = outputs_slice.to_vec();
+
+            let predicted_outputs_size = predicted_outputs.len();
+            let mut losses_vector = Vec::with_capacity(predicted_outputs_size);
+
+            for i in 0..predicted_outputs_size {
+                let predicted_output = predicted_outputs[i];
+                let target = targets[i];
+                if is_classification {
+                    losses_vector.push(-target * predicted_output.log2()
+                        - (-1. - target) * (-1. - predicted_output).log2());
                 } else {
-                    (*model).deltas[layers][j] = (*model).X[layers][j] - outputs_slice[j];
-                    if is_classification {
-                        (*model).deltas[layers][j] *= 1. - (*model).X[layers][j] * (*model).X[layers][j];
-                    }
+                    losses_vector.push((predicted_output - target).powi(2))
                 }
             }
 
-            for l in (1..layers).rev() {
+            let mut output_errors = Vec::with_capacity(predicted_outputs_size);
+
+            for i in 0..predicted_outputs_size {
+                let predicted_output = predicted_outputs[i];
+                let target = targets[i];
+                if is_classification {
+                    output_errors.push(target - predicted_output);
+                } else {
+                    output_errors.push(predicted_output - target);
+                }
+            }
+
+            for l in (1..=layers - 1).rev() {
                 for i in 1..=(*model).dimensions[l - 1] as usize {
                     let mut res: f32 = 0.;
                     for j in 1..=(*model).dimensions[l] as usize {
                         res += (*model).W[l][i][j] * (*model).deltas[l][j];
                     }
-                    (*model).deltas[l - 1][i] = (1. - (*model).X[l - 1][i] * (*model).X[l - 1][i]) * res;
+                    (*model).deltas[l - 1][i] =
+                        (1. - (*model).X[l - 1][i] * (*model).X[l - 1][i]) * res;
                 }
             }
 
