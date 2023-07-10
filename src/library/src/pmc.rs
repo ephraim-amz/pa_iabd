@@ -1,10 +1,7 @@
 use rand::{Rng, thread_rng};
 use std::f32;
-
-use std::os::raw::c_char;
 use std::ffi::CString;
-use libc::c_void;
-use libc::c_int;
+use libc::puts;
 
 
 #[repr(C)]
@@ -44,7 +41,7 @@ pub extern "C" fn new_pmc(dimensions_arr: *const i64, layer_size_per_neuron: usi
 
     for layer in 0..layer_size_per_neuron {
         let neuron_count = dimensions_arr_slice[layer] as usize + 1;
-        pmc_model.X.push(vec![0.0; neuron_count]);
+        pmc_model.X.push(vec![1.0; neuron_count]);
     }
 
     let leaked = Box::into_raw(pmc_model);
@@ -68,24 +65,24 @@ pub extern "C" fn train_pmc_model(
         let nb_outputs = (*model).dimensions[last_index];
         let sample_count = (dataset_inputs_size as f32 / input_dimensions as f32).floor() as i32;
         let layers = (*model).layers as usize;
-        for _epoch in 0..epochs {
+        for epoch in 0..epochs {
             let k = rng.gen_range(0..=sample_count) as i64;
 
             let (inputs_slice, inputs_slice_length) =
                 get_portion_from_pointer(flattened_dataset_inputs, input_dimensions, k);
-            let (outputs_slice, _) = get_portion_from_pointer(flattened_dataset_outputs, nb_outputs, k);
+            let (outputs_slice, _) = get_portion_from_pointer(flattened_dataset_outputs, nb_outputs, k + 1);
 
             forward_pass(model, inputs_slice.as_ptr(), inputs_slice_length, is_classification);
 
             let predicted_outputs = (*model).X[last_index][1..].to_vec();
-            let targets = outputs_slice;
+            let targets = &outputs_slice[1..];
 
             let predicted_outputs_size = predicted_outputs.len();
             let mut losses_vector = Vec::with_capacity(predicted_outputs_size);
 
-            for i in 0..predicted_outputs_size {
+            for i in 1..predicted_outputs_size {
                 let predicted_output = predicted_outputs[i];
-                let target = targets[i];
+                let target = targets[i - 1];
                 if is_classification {
                     losses_vector.push(-target * predicted_output.log2()
                         - (-1. - target) * (-1. - predicted_output).log2());
@@ -96,15 +93,21 @@ pub extern "C" fn train_pmc_model(
 
             let mut output_errors = Vec::with_capacity(predicted_outputs_size);
 
-            for i in 0..predicted_outputs_size {
+            for i in 1..predicted_outputs_size {
                 let predicted_output = predicted_outputs[i];
-                let target = targets[i];
+                let target = targets[i - 1];
                 if is_classification {
                     output_errors.push(target - predicted_output);
                 } else {
                     output_errors.push(predicted_output - target);
                 }
             }
+
+            let average_loss = losses_vector.iter().sum::<f32>() / losses_vector.len() as f32;
+
+            let loss_string = format!("Epoch: {}, Loss: {}\n", epoch, average_loss);
+            let loss_cstring = CString::new(loss_string).unwrap();
+            puts(loss_cstring.as_ptr());
 
             for l in (1..=layers - 1).rev() {
                 for i in 1..=(*model).dimensions[l - 1] as usize {
@@ -212,7 +215,7 @@ fn forward_pass(model: *mut PMC, sample_inputs: *const f32, sample_inputs_size: 
 
         for k in 0..sample_count {
             for j in 0..input_dimensions {
-                (*model).X[0][j + 1] = sample_inputs_slice[k * input_dimensions + j];
+                (*model).X[0][j] = sample_inputs_slice[k * input_dimensions + j];
             }
 
             for layer in 1..layers {
