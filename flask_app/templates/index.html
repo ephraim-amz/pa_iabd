@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Terrascan</title>
+    <style>
+        body {
+            background-color: #232323;
+            color: #ffffff;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #1c1c1c;
+            box-shadow: 0px 2px 10px rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .title {
+            color: #c4d7e3;
+            font-size: 36px;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+            box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.3);
+            padding: 10px;
+        }
+
+        .section {
+            margin-bottom: 20px;
+            padding: 20px;
+            background-color: #2d2d2d;
+            border-radius: 8px;
+            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.4);
+        }
+
+        .description {
+            font-size: 14px;
+            line-height: 1.5;
+            color: #ffffff;
+            margin-top: 10px;
+            text-align: justify;
+        }
+
+        .upload-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 80%;
+        }
+
+        .upload-btn {
+            background-color: #5e7f8e;
+            color: #ffffff;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            font-size: 14px;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+
+        .upload-input {
+            display: none;
+        }
+
+        .upload-label {
+            color: #ffffff;
+            font-size: 14px;
+            margin-top: 10px;
+            text-align: center;
+        }
+
+        .model-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 80%;
+        }
+
+        .model-btn {
+            background-color: #5e7f8e;
+            color: #ffffff;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            font-size: 14px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="title">Terrascan</h1>
+
+        <div class="section">
+            <h2>Accueil</h2>
+            <p class="description">Bienvenue sur notre site de détection du type de terrain de sport par image !<br><br>Nous sommes ravis de vous accueillir sur notre plateforme qui utilise des technologies avancées pour identifier et classer les différents types de terrains de sport à partir d'images. Que vous soyez un passionné de football, de basketball, de rugby ou tout autre sport, notre outil vous aidera à reconnaître les terrains appropriés.<br><br>Essayez notre outil dès maintenant en téléchargeant ou en prenant une photo du terrain de sport que vous souhaitez identifier.</p>
+        </div>
+
+        <div class="section upload-container">
+            <h2>Uploader une image</h2>
+            <label for="image-upload" class="upload-label">Cliquez ici pour sélectionner une image</label>
+            <form action="/upload/form_submit" method="POST">
+                <input type="file" id="image-upload" class="upload-input" name="image">
+                <button type="submit" class="upload-btn">Uploader</button>
+            </form>
+        </div>
+
+        <div class="section model-container">
+            <h2>Enregistrer le dernier modèle</h2>
+            <button class="model-btn">Enregistrer</button>
+        </div>
+    </div>
+</body>
+</html>
