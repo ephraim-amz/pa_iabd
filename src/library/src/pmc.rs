@@ -27,9 +27,8 @@ pub extern "C" fn new_pmc(dimensions_arr: *const i64, layer_size_per_neuron: usi
         dimensions: dimensions_arr_slice.to_vec(),
         W: Vec::new(),
         X: Vec::new(),
-        deltas: vec![vec![0.0; dimensions_arr_slice[layer_size_per_neuron -1] as usize]; layer_size_per_neuron],
+        deltas: vec![vec![0.0; dimensions_arr_slice[layer_size_per_neuron - 1] as usize]; layer_size_per_neuron],
     });
-
 
     for layer in 0..layer_size_per_neuron {
         pmc_model.W.push(Vec::new());
@@ -37,24 +36,18 @@ pub extern "C" fn new_pmc(dimensions_arr: *const i64, layer_size_per_neuron: usi
             for weight in 0..(dimensions_arr_slice[layer - 1] + 1) as usize {
                 pmc_model.W[layer].push(vec![0.0; (dimensions_arr_slice[layer] + 1) as usize]);
                 for index in 0..(dimensions_arr_slice[layer] + 1) as usize {
-                    pmc_model.W[layer][weight][index] = rng.gen_range(-1.0..=1.)
+                    pmc_model.W[layer][weight][index] = rng.gen_range(-1.0..=1.);
                 }
             }
         }
     }
 
     for layer in 0..layer_size_per_neuron {
-        pmc_model.X.push(Vec::new());
-        for weight in 0..(dimensions_arr_slice[layer] + 1) {
-            if weight != 0 {
-                pmc_model.X[layer].push(0.);
-            } else {
-                pmc_model.X[layer].push(1.);
-            }
-        }
+        let neuron_count = dimensions_arr_slice[layer] as usize + 1;
+        pmc_model.X.push(vec![0.0; neuron_count]);
     }
 
-    let leaked = Box::leak(pmc_model);
+    let leaked = Box::into_raw(pmc_model);
     leaked
 }
 
@@ -80,7 +73,7 @@ pub extern "C" fn train_pmc_model(
 
             let (inputs_slice, inputs_slice_length) =
                 get_portion_from_pointer(flattened_dataset_inputs, input_dimensions, k);
-            let (outputs_slice, outputs_size) = get_portion_from_pointer(flattened_dataset_outputs, nb_outputs, k);
+            let (outputs_slice, _) = get_portion_from_pointer(flattened_dataset_outputs, nb_outputs, k);
 
             forward_pass(model, inputs_slice.as_ptr(), inputs_slice_length, is_classification);
 
@@ -133,14 +126,13 @@ pub extern "C" fn train_pmc_model(
             }
         }
 
-        for k in 0..sample_count as i64{
+        for k in 0..sample_count as i64 {
             let (inputs_slice, inputs_slice_length) =
                 get_portion_from_pointer(flattened_dataset_inputs, input_dimensions, k);
             forward_pass(model, inputs_slice.as_ptr(), inputs_slice_length, is_classification);
         }
     }
 }
-
 
 
 #[no_mangle]
@@ -215,23 +207,30 @@ fn forward_pass(model: *mut PMC, sample_inputs: *const f32, sample_inputs_size: 
     unsafe {
         let sample_inputs_slice = std::slice::from_raw_parts(sample_inputs, sample_inputs_size);
         let layers = (*model).dimensions.len();
-        for j in 0..sample_inputs_size {
-            (*model).X[0][j] = sample_inputs_slice[j];
-        }
-        for layer in 1..layers {
-            for j in 1..=(*model).dimensions[layer] as usize {
-                let mut res = 0.0;
-                for i in 0..=(*model).dimensions[layer - 1] as usize {
-                    res += (*model).W[layer][i][j] * (*model).X[layer - 1][i];
-                }
-                (*model).X[layer][j] = res;
-                if is_classification || layer < layers - 1 {
-                    (*model).X[layer][j] = f32::tanh((*model).X[layer][j]);
+        let input_dimensions = (*model).dimensions[0] as usize;
+        let sample_count = sample_inputs_size / input_dimensions;
+
+        for k in 0..sample_count {
+            for j in 0..input_dimensions {
+                (*model).X[0][j + 1] = sample_inputs_slice[k * input_dimensions + j];
+            }
+
+            for layer in 1..layers {
+                for j in 1..=(*model).dimensions[layer] as usize {
+                    let mut res = 0.0;
+                    for i in 0..=(*model).dimensions[layer - 1] as usize {
+                        res += (*model).W[layer][i][j] * (*model).X[layer - 1][i];
+                    }
+                    (*model).X[layer][j] = res;
+                    if is_classification || layer < layers - 1 {
+                        (*model).X[layer][j] = f32::tanh((*model).X[layer][j]);
+                    }
                 }
             }
         }
     }
 }
+
 
 fn get_portion_from_pointer(
     flattened_dataset_inputs: *const f32,
