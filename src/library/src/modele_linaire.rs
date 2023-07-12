@@ -4,7 +4,7 @@ use rand::distributions::Uniform;
 
 #[repr(C)]
 pub struct LinearClassifier {
-    pub weights: *mut f32,
+    pub weights: Vec<f32>,
     pub size: usize,
 }
 
@@ -12,15 +12,10 @@ pub struct LinearClassifier {
 pub extern "C" fn new(num_features: usize) -> *mut LinearClassifier {
     let mut rng = rand::thread_rng();
     let dist = Uniform::new_inclusive(-1.0, 1.0);
-    let mut weights: Vec<f32> = Vec::with_capacity(num_features + 1);
-
-    for _ in 0..num_features + 1 as usize {
-        weights.push(rng.sample(dist));
-    }
-
+    let mut weights: Vec<f32> = (0..num_features + 1).map(|_| rng.sample(dist)).collect();
     let model = Box::new(LinearClassifier {
         size: num_features,
-        weights: weights.as_ptr() as *mut f32,
+        weights,
     });
     let leak_lm = Box::leak(model);
     leak_lm
@@ -72,28 +67,8 @@ pub extern "C" fn train_regression(
 
         let Ww = W3.iter().cloned().collect::<Vec<f32>>();
 
-        for i in 0..linear_model.size {
-            (*linear_model.weights.offset(i as isize)) = Ww[i];
-        }
+        linear_model.weights = Ww;
     }
-}
-
-#[no_mangle]
-pub extern "C" fn predict_regression(
-    lm: *const LinearClassifier,
-    inputs: *const f32,
-    inputs_size: usize,
-) -> f32 {
-    let model = unsafe { &*lm };
-    let weights_slice = unsafe { std::slice::from_raw_parts(model.weights, model.size + 1) };
-    let inputs_slice = unsafe { std::slice::from_raw_parts(inputs, inputs_size) };
-
-    let mut z = weights_slice[0];
-
-    for i in 1..=model.size {
-        z += weights_slice[i] * inputs_slice[i - 1];
-    }
-    z
 }
 
 #[no_mangle]
@@ -114,32 +89,45 @@ pub extern "C" fn train_classification(
 
         for _ in 0..epochs {
             let k = rng.gen_range(0..inputs_size / output_size);
+            let inputs_slice = &inputs[k * output_size..(k + 1) * output_size];
             let mut Xk = vec![1.0];
+            Xk.extend_from_slice(inputs_slice);
 
-            for i in 0..output_size {
-                Xk.push(inputs[k * output_size + i]);
-            }
 
-            let gXk = match dot_product(&transpose(inputs, inputs_size), &Xk) {
-                x if x >= 1.0 => 1.0,
-                x if x <= -1.0 => 2.0,
-                _ => 0.0,
-            };
+            let mut gXk = dot_product(&(*lm).weights, &Xk);
 
-            for i in 1..=(*lm).size {
-                let weight_ptr = (*lm).weights.add(i - 1);
-                *weight_ptr += lr * (outputs[k] - gXk) * Xk[i];
+
+            for (i, weight) in (*lm).weights.iter_mut().skip(1).enumerate() {
+                *weight += lr * (outputs[k] - gXk) * Xk[i];
             }
         }
     }
 }
 
-fn dot_product(weights: &[f32], inputs: &[f32]) -> f32 {
+fn dot_product(weights: &Vec<f32>, inputs: &Vec<f32>) -> f32 {
     weights.iter().zip(inputs).map(|(w, x)| w * x).sum()
 }
 
 fn transpose(weights: &[f32], size: usize) -> Vec<f32> {
     weights.iter().take(size).cloned().collect()
+}
+
+
+#[no_mangle]
+pub extern "C" fn predict_regression(
+    lm: *const LinearClassifier,
+    inputs: *const f32,
+    inputs_size: usize,
+) -> f32 {
+    let model = unsafe { &*lm };
+    let inputs_slice = unsafe { std::slice::from_raw_parts(inputs, inputs_size) };
+
+    let mut z = model.weights[0];
+
+    for i in 1..=model.size {
+        z += model.weights[i] * inputs_slice[i - 1];
+    }
+    z
 }
 
 #[no_mangle]
@@ -162,8 +150,7 @@ pub extern "C" fn predict_classification(
 pub extern "C" fn delete_model(lm: *mut LinearClassifier) {
     unsafe {
         if !lm.is_null() {
-            drop((*lm).weights);
-            drop(lm);
+            drop(Box::from_raw(lm));
         }
     }
 }
