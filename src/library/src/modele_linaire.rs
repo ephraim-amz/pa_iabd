@@ -1,5 +1,7 @@
+use std::ffi::CString;
+use libc::puts;
 use rand::Rng;
-use nalgebra::{DMatrix, DVector};
+use nalgebra::DMatrix;
 use rand::distributions::Uniform;
 
 #[repr(C)]
@@ -35,39 +37,34 @@ pub extern "C" fn train_regression(
         let input_dim = linear_model.size;
         let samples_count = len_input / input_dim;
 
-        let mut vX = DVector::<f32>::zeros(len_input);
-        for i in 0..len_input {
-            vX[i] = *flattened_dataset_inputs.offset(i as isize);
-        }
-        let X = DMatrix::from_fn(len_input, 1, |i, _| vX[i]);
+        let X = DMatrix::from_row_slice(samples_count, input_dim, std::slice::from_raw_parts(flattened_dataset_inputs, len_input));
+        let Y = DMatrix::from_row_slice(len_output, 1, std::slice::from_raw_parts(flattened_dataset_expected_outputs, len_output));
+        let ones = DMatrix::<f32>::repeat(samples_count, 1, 1.);
 
-        let mut vY = DVector::<f32>::zeros(len_output);
-        for i in 0..len_output {
-            vY[i] = *flattened_dataset_expected_outputs.offset(i as isize);
-        }
-        let Y = DMatrix::from_fn(len_output, 1, |i, _| vY[i]);
+        /*let x_matrix_string = format!("X {:?}", X);
+        let x_matrix_cstring = CString::new(x_matrix_string).unwrap();
+        puts(x_matrix_cstring.as_ptr());
 
-        let ones = DMatrix::<f32>::repeat(samples_count, 1, 1.0);
+        let y_matrix_string = format!("Y {:?}", Y);
+        let y_matrix_cstring = CString::new(y_matrix_string).unwrap();
+        puts(y_matrix_cstring.as_ptr());*/
 
         let mut Xi = DMatrix::<f32>::zeros(X.nrows(), X.ncols() + ones.ncols());
+
         Xi.column_mut(0).copy_from(&X.column(0));
 
-        let ones_col = ones.column(0);
+        let first_one_column = ones.column(0);
+
         for i in 0..samples_count {
-            Xi.column_mut(i + X.ncols()).copy_from(&ones_col);
+            Xi.column_mut(i + X.ncols()).copy_from(&first_one_column);
         }
 
         let W = Xi.transpose() * &Xi;
-
-        let W_inv = W.try_inverse().expect("Matrice non inversible");
-
-        let W2 = &W_inv * Xi.transpose();
-
+        let inv_W = W.try_inverse().expect("Matrice non inversible");
+        let W2 = &inv_W * Xi.transpose();
         let W3 = &W2 * Y;
 
-        let Ww = W3.iter().cloned().collect::<Vec<f32>>();
-
-        linear_model.weights = Ww;
+        linear_model.weights = W3.iter().cloned().collect::<Vec<f32>>();
     }
 }
 
