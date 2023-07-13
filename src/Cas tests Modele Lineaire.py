@@ -250,7 +250,7 @@ if __name__ == "__main__":
     plt.scatter([p[0] for p in X], [p[1] for p in X], c=colors, s=20)
     plt.show()
     lib.delete_model(linear_classifier_object)
-    """
+    
 
     # Multi Cross
 
@@ -270,9 +270,9 @@ if __name__ == "__main__":
 
     flattened_outputs = Y.flatten().astype(np.float32)
     arr_outputs = flattened_outputs.ctypes.data_as(ctypes.POINTER(ctypes.c_float))
+    print(len(flattened_inputs) // X.shape[1], len(flattened_outputs) // Y.shape[1])
+    lib.train_classification(linear_classifier_object, arr_inputs, arr_outputs, len(flattened_inputs) // X.shape[1], len(flattened_outputs) // Y.shape[1], 0.1, 1000)
 
-    lib.train_classification(linear_classifier_object, arr_inputs, arr_outputs, len(flattened_inputs),
-                             len(flattened_outputs), 0.1, 1000)
 
     predicted_outputs = []
     for p in test_dataset:
@@ -295,9 +295,10 @@ if __name__ == "__main__":
                 color='green')
     plt.show()
     lib.delete_model(linear_classifier_object)
+    """
 
     # Régression
-    """
+
     X = np.array([
         [1],
         [2]
@@ -307,6 +308,8 @@ if __name__ == "__main__":
         3
     ])
 
+    test_dataset_inputs = list(map(lambda i: float(i), range(-10, 11)))
+
     linear_regression_object = lib.new(1)
     flattened_inputs = X.flatten().astype(np.float32)
     arr_inputs = flattened_inputs.ctypes.data_as(ctypes.POINTER(ctypes.c_float))
@@ -314,7 +317,8 @@ if __name__ == "__main__":
     flattened_outputs = Y.flatten().astype(np.float32)
     arr_outputs = flattened_outputs.ctypes.data_as(ctypes.POINTER(ctypes.c_float))
 
-    lib.train_regression(linear_regression_object, arr_inputs, arr_outputs, len(flattened_inputs), len(flattened_outputs))
+    lib.train_regression(linear_regression_object, arr_inputs, arr_outputs, len(flattened_inputs),
+                         len(flattened_outputs))
 
     test_inputs = np.array(test_dataset_inputs, dtype=np.float32, order='C')
     flattened_test_inputs = test_inputs.flatten()
@@ -332,4 +336,3 @@ if __name__ == "__main__":
     plt.axis([-10, 10, -10, 10])
     plt.show()
     lib.delete_model(linear_regression_object)
-    """
