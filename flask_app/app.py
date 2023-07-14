@@ -47,7 +47,7 @@ def train_image(img_path):
         list(map(lambda x: [x[0], x[1], x[2]], list(img.getdata())[0:10]))
     ).flatten().astype(np.float32)
 
-    lib.train_classification(flattened_inputs, [1,1,-1])
+    lib.train_classification(flattened_inputs, [1, 1, -1])
 
 
 if __name__ == "__main__":
