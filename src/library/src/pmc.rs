@@ -1,16 +1,16 @@
 use rand::{Rng, thread_rng};
 use std::f32;
 use std::ffi::CString;
-use libc::{c_char, exit, puts};
+use libc::puts;
 
 
 #[repr(C)]
 pub struct PMC {
-    pub layers: u32,
-    pub dimensions: Vec<i64>,
-    pub W: Vec<Vec<Vec<f32>>>,
-    pub X: Vec<Vec<f32>>,
-    pub deltas: Vec<Vec<f32>>,
+    layers: u32,
+    dimensions: Vec<i64>,
+    W: Vec<Vec<Vec<f32>>>,
+    X: Vec<Vec<f32>>,
+    deltas: Vec<Vec<f32>>,
 }
 
 #[no_mangle]

@@ -98,7 +98,7 @@ if __name__ == "__main__":
     flattened_outputs = Y.flatten().astype(np.float32)
     arr_outputs = (ctypes.c_float * len(flattened_outputs))(*flattened_outputs)
 
-    colors = ["blue" if output >= 0 else "red" for output in Y]
+    colors = ["blue" if output == 1.0 else "red" for output in Y]
 
     dimensions = [2, 1]
     dimensions_arr = (ctypes.c_int64 * len(dimensions))(*dimensions)
@@ -112,7 +112,7 @@ if __name__ == "__main__":
         arr_outputs,
         len(arr_outputs),
         ctypes.c_float(0.001),
-        ctypes.c_int32(100000),
+        ctypes.c_int32(10),
         ctypes.c_bool(True),
     )
 
@@ -120,7 +120,7 @@ if __name__ == "__main__":
     sample_inputs = np.array(test_dataset, dtype=np.float32)
     flattened_inputs = sample_inputs.flatten()
     arr_inputs = (ctypes.c_float * len(flattened_inputs))(*flattened_inputs)
-    t = np.array([2.0, 3.0])
+    t = np.array([1.0, 1.0])
     t_ctypes = (ctypes.c_float * len(t))(*t)
     predicted_outputs_ptr = lib.predict_pmc_model(
         pmc_model,
@@ -128,12 +128,15 @@ if __name__ == "__main__":
         2,
         ctypes.c_bool(True),
     )
-    predicted_outputs = np.ctypeslib.as_array(
-        predicted_outputs_ptr,
-        shape=(lib.get_X_len(pmc_model),),
-    )
 
-    predicted_outputs_colors = ["blue" if label >= 0 else "red" for label in predicted_outputs]
+    predicted_outputs = []
+    for p in range(len(test_dataset)):
+        prediction = lib.predict_pmc_model(pmc_model, arr_inputs, len(flattened_inputs), ctypes.c_bool(True))
+        arr = np.ctypeslib.as_array(prediction, (lib.get_X_len(pmc_model),))
+        predicted_outputs.append(arr[0])
+
+    
+    predicted_outputs_colors = ["blue" if label == 1.0 else "red" for label in predicted_outputs]
     plt.scatter([p[0] for p in test_dataset], [p[1] for p in test_dataset], c=predicted_outputs_colors, s=2)
     plt.scatter([p[0] for p in X], [p[1] for p in X], c=colors, s=200)
     plt.show()
