@@ -135,7 +135,7 @@ if __name__ == "__main__":
         arr = np.ctypeslib.as_array(prediction, (lib.get_X_len(pmc_model),))
         predicted_outputs.append(arr[0])
 
-    
+
     predicted_outputs_colors = ["blue" if label == 1.0 else "red" for label in predicted_outputs]
     plt.scatter([p[0] for p in test_dataset], [p[1] for p in test_dataset], c=predicted_outputs_colors, s=2)
     plt.scatter([p[0] for p in X], [p[1] for p in X], c=colors, s=200)

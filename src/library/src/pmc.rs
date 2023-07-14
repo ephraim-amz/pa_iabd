@@ -1,10 +1,14 @@
 use rand::{Rng, thread_rng};
 use std::f32;
 use std::ffi::CString;
+use std::fs::File;
+use std::io::{Error, Read, Write, BufWriter};
 use libc::puts;
-
+use serde_derive::{Deserialize, Serialize};
+use serde_json;
 
 #[repr(C)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct PMC {
     layers: u32,
     dimensions: Vec<i64>,
@@ -12,6 +16,7 @@ pub struct PMC {
     X: Vec<Vec<f32>>,
     deltas: Vec<Vec<f32>>,
 }
+
 
 #[no_mangle]
 pub extern "C" fn new_pmc(dimensions_arr: *const i64, layer_size_per_neuron: usize) -> *mut PMC {
@@ -119,9 +124,8 @@ pub extern "C" fn predict_pmc_model(
             let informations_string = format!("Result {:?} ", inputs_slice);
             let informations_cstring = CString::new(informations_string).unwrap();
             puts(informations_cstring.as_ptr());
+            r
         }
-
-        predict_pmc_classification(model, sample_inputs, sample_inputs_size)
     } else {
         predict_pmc_regression(model, sample_inputs, sample_inputs_size)
     };
@@ -289,4 +293,26 @@ fn get_portion_from_pointer(
         (slice, input_dimensions as usize)
     }
 }
+
+
+#[no_mangle]
+pub extern "C" fn save_model(model: *mut PMC, filename: &str) -> Result<(), Error> {
+    let m = unsafe { &*model };
+    let serialized_pmc = serde_json::to_string(m)?;
+    let file = File::create(filename)?;
+    let mut buf_writer = BufWriter::new(file);
+    buf_writer.write_all(serialized_pmc.as_bytes())?;
+    Ok(())
+}
+
+#[no_mangle]
+pub extern "C" fn load_model(path: &str) -> Result<*mut PMC, Error> {
+    let mut file = File::open(path)?;
+    let mut content = String::new();
+    file.read_to_string(&mut content)?;
+    let pmc: PMC = serde_json::from_str(&content)?;
+    let leaked = Box::into_raw(Box::new(pmc));
+    Ok(leaked)
+}
+
 
