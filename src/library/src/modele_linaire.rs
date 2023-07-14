@@ -95,6 +95,6 @@ pub extern "C" fn delete_model(lm: *mut LinearClassifier) -> Box<LinearClassifie
 #[no_mangle]
 pub extern "C" fn delete_float_array(arr: *mut f32, arr_len: usize) {
     unsafe {
-        Vec::from_raw_parts(arr, arr_len as usize, arr_len)
+        drop(Vec::from_raw_parts(arr, arr_len, arr_len))
     };
 }

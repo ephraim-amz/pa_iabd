@@ -63,6 +63,7 @@ if __name__ == "__main__":
         "dataset_inputs": ctypes.POINTER(ctypes.c_float),
         "dataset_inputs_size": ctypes.c_size_t,
         "flattened_dataset_outputs": ctypes.POINTER(ctypes.c_float),
+        "dataset_outputs_size": ctypes.c_size_t,
         "alpha": ctypes.c_float,
         "epochs": ctypes.c_int32,
         "is_classification": ctypes.c_bool
@@ -109,8 +110,9 @@ if __name__ == "__main__":
         arr_inputs,
         len(flattened_inputs),
         arr_outputs,
+        len(arr_outputs),
         ctypes.c_float(0.001),
-        ctypes.c_int32(100),
+        ctypes.c_int32(100000),
         ctypes.c_bool(True),
     )
 
@@ -118,11 +120,12 @@ if __name__ == "__main__":
     sample_inputs = np.array(test_dataset, dtype=np.float32)
     flattened_inputs = sample_inputs.flatten()
     arr_inputs = (ctypes.c_float * len(flattened_inputs))(*flattened_inputs)
-
+    t = np.array([2.0, 3.0])
+    t_ctypes = (ctypes.c_float * len(t))(*t)
     predicted_outputs_ptr = lib.predict_pmc_model(
         pmc_model,
-        arr_inputs,
-        len(flattened_inputs),
+        t_ctypes,
+        2,
         ctypes.c_bool(True),
     )
     predicted_outputs = np.ctypeslib.as_array(
@@ -218,7 +221,7 @@ if __name__ == "__main__":
     plt.scatter([p[0] for p in X], [p[1] for p in X], c=colors, s=200)
     plt.show()
     lib.delete_pmc_model(pmc_model)
-    
+
     # Multi Linear 3 Classes
     X = np.random.random((500, 2)) * 2.0 - 1.0
     Y = np.array([[1, 0, 0] if -p[0] - p[1] - 0.5 > 0 and p[1] < 0 and p[0] - p[1] - 0.5 < 0 else
