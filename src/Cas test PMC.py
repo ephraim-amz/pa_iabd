@@ -83,6 +83,34 @@ if __name__ == "__main__":
     lib.delete_pmc_model.argtypes = [ctypes.POINTER(PMC)]
     lib.delete_pmc_model.restype = None
 
+    save_model_arg_dict = {
+        "model": ctypes.POINTER(PMC),
+        "filename": ctypes.c_char_p
+    }
+
+    lib.save_model.argtypes = list(save_model_arg_dict.values())
+    lib.save_model.restype = ctypes.c_int
+    filename = b"model.json"
+    # is_model_saved = lib.save_model(ctypes.byref(pmc_model), filename)
+    # if not is_model_saved:
+    #     raise IOError("Une erreur est survenue lors de la sauvegarde du modèle")
+
+    load_model_arg_dict = {
+        "path": ctypes.c_char_p
+    }
+
+    lib.load_model.argtypes = list(load_model_arg_dict.values())
+    lib.load_model.restype = ctypes.POINTER(PMC)
+
+    # path = filename
+    #
+    # load_model_result = lib.load_model(path)
+    #
+    # if load_model_result is not None:
+    #     pmc_model_ptr = ctypes.cast(load_model_result, ctypes.POINTER(PMC))
+    # else:
+    #     raise IOError("Une erreur est survenue lors du chargement du modèle")
+
     get_X_len_arg_dict = {
         "model": ctypes.POINTER(PMC)
     }
@@ -134,7 +162,6 @@ if __name__ == "__main__":
         prediction = lib.predict_pmc_model(pmc_model, arr_inputs, len(flattened_inputs), ctypes.c_bool(True))
         arr = np.ctypeslib.as_array(prediction, (lib.get_X_len(pmc_model),))
         predicted_outputs.append(arr[0])
-
 
     predicted_outputs_colors = ["blue" if label == 1.0 else "red" for label in predicted_outputs]
     plt.scatter([p[0] for p in test_dataset], [p[1] for p in test_dataset], c=predicted_outputs_colors, s=2)

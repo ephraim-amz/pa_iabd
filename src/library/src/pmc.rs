@@ -1,9 +1,10 @@
 use rand::{Rng, thread_rng};
 use std::f32;
-use std::ffi::CString;
+use std::ffi::{CStr, CString};
 use std::fs::File;
-use std::io::{Error, Read, Write, BufWriter};
-use libc::puts;
+use std::error::Error;
+use std::io::{Read, Write, BufWriter};
+use libc::{c_char, puts};
 use serde_derive::{Deserialize, Serialize};
 use serde_json;
 
@@ -30,7 +31,7 @@ pub extern "C" fn new_pmc(dimensions_arr: *const i64, layer_size_per_neuron: usi
         W: Vec::new(),
         X: Vec::new(),
         deltas: vec![
-            vec![0.0; dimensions_arr_slice[layer_size_per_neuron - 1] as usize]; layer_size_per_neuron
+            vec![0.0; dimensions_arr_slice[layer_size_per_neuron - 1] as usize]; layer_size_per_neuron,
         ],
     });
 
@@ -296,18 +297,18 @@ fn get_portion_from_pointer(
 
 
 #[no_mangle]
-pub extern "C" fn save_model(model: *mut PMC, filename: &str) -> Result<(), Error> {
+pub extern "C" fn save_model(model: *mut PMC, filename: *const c_char) -> Result<(), Box<dyn Error>> {
     let m = unsafe { &*model };
     let serialized_pmc = serde_json::to_string(m)?;
-    let file = File::create(filename)?;
+    let file = unsafe { File::create(CStr::from_ptr(filename).to_str()?).expect("Une erreur est survenue lors de la création du fichier") };
     let mut buf_writer = BufWriter::new(file);
     buf_writer.write_all(serialized_pmc.as_bytes())?;
     Ok(())
 }
 
 #[no_mangle]
-pub extern "C" fn load_model(path: &str) -> Result<*mut PMC, Error> {
-    let mut file = File::open(path)?;
+pub extern "C" fn load_model(path: *const c_char) -> Result<*mut PMC, Box<dyn Error>> {
+    let mut file = unsafe { File::open(CStr::from_ptr(path).to_str()?)? };
     let mut content = String::new();
     file.read_to_string(&mut content)?;
     let pmc: PMC = serde_json::from_str(&content)?;
