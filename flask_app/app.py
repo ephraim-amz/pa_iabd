@@ -1,11 +1,13 @@
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, flash
 from PIL import Image
 import numpy as np
 import linear_classifier
 import pmc
+import secrets
 
 app = Flask(__name__)
 
+app.config['SECRET_KEY'] = secrets.token_urlsafe(5)
 
 @app.route('/')
 def index():
@@ -30,15 +32,12 @@ def upload():
         for pixel in pixels:
             # Ajouter le pixel à la liste des pixels de l'image
             image_pixels.append(pixel)
-
-        return 'Image téléchargée avec succès et convertie en pixels'
+        print("Image téléchargée avec succès et convertie en pixels")
     else:
-        return 'Aucun fichier sélectionné'
+        print("Aucun fichier sélectionné")
+    return render_template("index.html")
 
 
-@app.route('/upload/form', methods=['GET'])
-def upload_form():
-    return render_template("upload_form.html")
 
 """
 def train_image(img_path):
