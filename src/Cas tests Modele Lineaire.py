@@ -72,6 +72,35 @@ if __name__ == "__main__":
 
     lib.delete_model.argtypes = [ctypes.POINTER(LinearClassifier)]
     lib.delete_model.restype = None
+
+    save_model_arg_dict = {
+        "model": ctypes.POINTER(LinearClassifier),
+        "filename": ctypes.c_char_p
+    }
+
+    lib.save_model.argtypes = list(save_model_arg_dict.values())
+    lib.save_model.restype = ctypes.c_int
+    filename = b"model.json"
+    # is_model_saved = lib.save_model(ctypes.byref(pmc_model), filename)
+    # if not is_model_saved:
+    #     raise IOError("Une erreur est survenue lors de la sauvegarde du modèle")
+
+    load_model_arg_dict = {
+        "path": ctypes.c_char_p
+    }
+
+    lib.load_model.argtypes = list(load_model_arg_dict.values())
+    lib.load_model.restype = ctypes.POINTER(LinearClassifier)
+
+    # path = filename
+    #
+    # load_model_result = lib.load_model(path)
+    #
+    # if load_model_result is not None:
+    #     pmc_model_ptr = ctypes.cast(load_model_result, ctypes.POINTER(PMC))
+    # else:
+    #     raise IOError("Une erreur est survenue lors du chargement du modèle")
+
     """
     # Cas simple
 

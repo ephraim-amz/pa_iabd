@@ -1,20 +1,26 @@
-use std::ffi::CString;
-use libc::puts;
+use std::error::Error;
+use std::ffi::CStr;
+use std::fs::File;
+use std::io::{BufWriter, Read, Write};
+use libc::{c_char, puts};
 use rand::Rng;
 use nalgebra::DMatrix;
 use rand::distributions::Uniform;
+use serde_derive::{Serialize, Deserialize};
+use serde_json;
 
 #[repr(C)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct LinearClassifier {
-    pub weights: Vec<f32>,
-    pub size: usize,
+    weights: Vec<f32>,
+    size: usize,
 }
 
 #[no_mangle]
 pub extern "C" fn new(num_features: usize) -> *mut LinearClassifier {
     let mut rng = rand::thread_rng();
     let dist = Uniform::new_inclusive(-1.0, 1.0);
-    let mut weights: Vec<f32> = (0..num_features + 1).map(|_| rng.sample(dist)).collect();
+    let weights: Vec<f32> = (0..num_features + 1).map(|_| rng.sample(dist)).collect();
     let model = Box::new(LinearClassifier {
         size: num_features,
         weights,
@@ -91,7 +97,7 @@ pub extern "C" fn train_classification(
             Xk.extend_from_slice(inputs_slice);
 
 
-            let mut gXk = dot_product(&(*lm).weights, &Xk);
+            let gXk = dot_product(&(*lm).weights, &Xk);
 
 
             for (i, weight) in (*lm).weights.iter_mut().skip(1).enumerate() {
@@ -150,4 +156,24 @@ pub extern "C" fn delete_model(lm: *mut LinearClassifier) {
             drop(Box::from_raw(lm));
         }
     }
+}
+
+#[no_mangle]
+pub extern "C" fn save_model(model: *mut LinearClassifier, filename: *const c_char) -> Result<(), Box<dyn Error>> {
+    let m = unsafe { &*model };
+    let serialized_pmc = serde_json::to_string(m)?;
+    let file = unsafe { File::create(CStr::from_ptr(filename).to_str()?).expect("Une erreur est survenue lors de la création du fichier") };
+    let mut buf_writer = BufWriter::new(file);
+    buf_writer.write_all(serialized_pmc.as_bytes())?;
+    Ok(())
+}
+
+#[no_mangle]
+pub extern "C" fn load_model(path: *const c_char) -> Result<*mut LinearClassifier, Box<dyn Error>> {
+    let mut file = unsafe { File::open(CStr::from_ptr(path).to_str()?)? };
+    let mut content = String::new();
+    file.read_to_string(&mut content)?;
+    let lm: LinearClassifier = serde_json::from_str(&content)?;
+    let leaked = Box::into_raw(Box::new(lm));
+    Ok(leaked)
 }
