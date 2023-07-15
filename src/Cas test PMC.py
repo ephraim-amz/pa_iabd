@@ -63,6 +63,7 @@ if __name__ == "__main__":
         "dataset_inputs": ctypes.POINTER(ctypes.c_float),
         "dataset_inputs_size": ctypes.c_size_t,
         "flattened_dataset_outputs": ctypes.POINTER(ctypes.c_float),
+        "dataset_outputs_size": ctypes.c_size_t,
         "alpha": ctypes.c_float,
         "epochs": ctypes.c_int32,
         "is_classification": ctypes.c_bool
@@ -82,6 +83,34 @@ if __name__ == "__main__":
     lib.delete_pmc_model.argtypes = [ctypes.POINTER(PMC)]
     lib.delete_pmc_model.restype = None
 
+    save_model_arg_dict = {
+        "model": ctypes.POINTER(PMC),
+        "filename": ctypes.c_char_p
+    }
+
+    lib.save_model.argtypes = list(save_model_arg_dict.values())
+    lib.save_model.restype = ctypes.c_int
+    filename = b"model.json"
+    # is_model_saved = lib.save_model(ctypes.byref(pmc_model), filename)
+    # if not is_model_saved:
+    #     raise IOError("Une erreur est survenue lors de la sauvegarde du modèle")
+
+    load_model_arg_dict = {
+        "path": ctypes.c_char_p
+    }
+
+    lib.load_model.argtypes = list(load_model_arg_dict.values())
+    lib.load_model.restype = ctypes.POINTER(PMC)
+
+    # path = filename
+    #
+    # load_model_result = lib.load_model(path)
+    #
+    # if load_model_result is not None:
+    #     pmc_model_ptr = ctypes.cast(load_model_result, ctypes.POINTER(PMC))
+    # else:
+    #     raise IOError("Une erreur est survenue lors du chargement du modèle")
+
     get_X_len_arg_dict = {
         "model": ctypes.POINTER(PMC)
     }
@@ -97,7 +126,7 @@ if __name__ == "__main__":
     flattened_outputs = Y.flatten().astype(np.float32)
     arr_outputs = (ctypes.c_float * len(flattened_outputs))(*flattened_outputs)
 
-    colors = ["blue" if output >= 0 else "red" for output in Y]
+    colors = ["blue" if output == 1.0 else "red" for output in Y]
 
     dimensions = [2, 1]
     dimensions_arr = (ctypes.c_int64 * len(dimensions))(*dimensions)
@@ -109,8 +138,9 @@ if __name__ == "__main__":
         arr_inputs,
         len(flattened_inputs),
         arr_outputs,
+        len(arr_outputs),
         ctypes.c_float(0.001),
-        ctypes.c_int32(100),
+        ctypes.c_int32(10),
         ctypes.c_bool(True),
     )
 
@@ -118,19 +148,22 @@ if __name__ == "__main__":
     sample_inputs = np.array(test_dataset, dtype=np.float32)
     flattened_inputs = sample_inputs.flatten()
     arr_inputs = (ctypes.c_float * len(flattened_inputs))(*flattened_inputs)
-
+    t = np.array([1.0, 1.0])
+    t_ctypes = (ctypes.c_float * len(t))(*t)
     predicted_outputs_ptr = lib.predict_pmc_model(
         pmc_model,
-        arr_inputs,
-        len(flattened_inputs),
+        t_ctypes,
+        2,
         ctypes.c_bool(True),
     )
-    predicted_outputs = np.ctypeslib.as_array(
-        predicted_outputs_ptr,
-        shape=(lib.get_X_len(pmc_model),),
-    )
 
-    predicted_outputs_colors = ["blue" if label >= 0 else "red" for label in predicted_outputs]
+    predicted_outputs = []
+    for p in range(len(test_dataset)):
+        prediction = lib.predict_pmc_model(pmc_model, arr_inputs, len(flattened_inputs), ctypes.c_bool(True))
+        arr = np.ctypeslib.as_array(prediction, (lib.get_X_len(pmc_model),))
+        predicted_outputs.append(arr[0])
+
+    predicted_outputs_colors = ["blue" if label == 1.0 else "red" for label in predicted_outputs]
     plt.scatter([p[0] for p in test_dataset], [p[1] for p in test_dataset], c=predicted_outputs_colors, s=2)
     plt.scatter([p[0] for p in X], [p[1] for p in X], c=colors, s=200)
     plt.show()
@@ -218,7 +251,7 @@ if __name__ == "__main__":
     plt.scatter([p[0] for p in X], [p[1] for p in X], c=colors, s=200)
     plt.show()
     lib.delete_pmc_model(pmc_model)
-    
+
     # Multi Linear 3 Classes
     X = np.random.random((500, 2)) * 2.0 - 1.0
     Y = np.array([[1, 0, 0] if -p[0] - p[1] - 0.5 > 0 and p[1] < 0 and p[0] - p[1] - 0.5 < 0 else
