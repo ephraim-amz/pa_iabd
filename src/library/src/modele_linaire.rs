@@ -159,7 +159,7 @@ pub extern "C" fn delete_model(lm: *mut LinearClassifier) {
 }
 
 #[no_mangle]
-pub extern "C" fn save_model(model: *mut LinearClassifier, filename: *const c_char) -> Result<(), Box<dyn Error>> {
+pub extern "C" fn save_linear_model(model: *mut LinearClassifier, filename: *const c_char) -> Result<(), Box<dyn Error>> {
     let m = unsafe { &*model };
     let serialized_pmc = serde_json::to_string(m)?;
     let file = unsafe { File::create(CStr::from_ptr(filename).to_str()?).expect("Une erreur est survenue lors de la création du fichier") };
@@ -169,7 +169,7 @@ pub extern "C" fn save_model(model: *mut LinearClassifier, filename: *const c_ch
 }
 
 #[no_mangle]
-pub extern "C" fn load_model(path: *const c_char) -> Result<*mut LinearClassifier, Box<dyn Error>> {
+pub extern "C" fn load_linear_model(path: *const c_char) -> Result<*mut LinearClassifier, Box<dyn Error>> {
     let mut file = unsafe { File::open(CStr::from_ptr(path).to_str()?)? };
     let mut content = String::new();
     file.read_to_string(&mut content)?;

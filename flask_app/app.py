@@ -1,14 +1,15 @@
 from flask import Flask, render_template, request
 from PIL import Image
 import numpy as np
+import linear_classifier
+import pmc
 
 app = Flask(__name__)
 
 
-@app.route('/index/')
+@app.route('/')
 def index():
-    m = 42
-    return render_template("index.html", m=m)
+    return render_template("index.html")
 
 
 @app.route('/upload', methods=['POST'])
@@ -39,7 +40,7 @@ def upload():
 def upload_form():
     return render_template("upload_form.html")
 
-
+"""
 def train_image(img_path):
     img = Image.open(img_path)
     img = img.convert('RGB')
@@ -48,7 +49,7 @@ def train_image(img_path):
     ).flatten().astype(np.float32)
 
     lib.train_classification(flattened_inputs, [1, 1, -1])
-
+"""
 
 if __name__ == "__main__":
     app.run(debug=True)

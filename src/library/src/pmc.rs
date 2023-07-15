@@ -31,7 +31,7 @@ pub extern "C" fn new_pmc(dimensions_arr: *const i64, layer_size_per_neuron: usi
         W: Vec::new(),
         X: Vec::new(),
         deltas: vec![
-            vec![0.0; dimensions_arr_slice[layer_size_per_neuron - 1] as usize]; layer_size_per_neuron,
+            vec![0.0; dimensions_arr_slice[layer_size_per_neuron - 1] as usize]; layer_size_per_neuron
         ],
     });
 
@@ -297,7 +297,7 @@ fn get_portion_from_pointer(
 
 
 #[no_mangle]
-pub extern "C" fn save_model(model: *mut PMC, filename: *const c_char) -> Result<(), Box<dyn Error>> {
+pub extern "C" fn save_pmc_model(model: *mut PMC, filename: *const c_char) -> Result<(), Box<dyn Error>> {
     let m = unsafe { &*model };
     let serialized_pmc = serde_json::to_string(m)?;
     let file = unsafe { File::create(CStr::from_ptr(filename).to_str()?).expect("Une erreur est survenue lors de la création du fichier") };
@@ -307,7 +307,7 @@ pub extern "C" fn save_model(model: *mut PMC, filename: *const c_char) -> Result
 }
 
 #[no_mangle]
-pub extern "C" fn load_model(path: *const c_char) -> Result<*mut PMC, Box<dyn Error>> {
+pub extern "C" fn load_pmc_model(path: *const c_char) -> Result<*mut PMC, Box<dyn Error>> {
     let mut file = unsafe { File::open(CStr::from_ptr(path).to_str()?)? };
     let mut content = String::new();
     file.read_to_string(&mut content)?;
