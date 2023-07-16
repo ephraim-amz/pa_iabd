@@ -43,7 +43,7 @@ predict_regression_arg_dict = {
     'inputs_size': ctypes.c_size_t,
 }
 
-save_model_arg_dict = {
+save_linear_model_arg_dict = {
     "model": ctypes.POINTER(LinearClassifier),
     "filename": ctypes.c_char_p
 }
@@ -53,21 +53,21 @@ load_model_arg_dict = {
 }
 
 
-class LinearClassifier:
+class LinearClassifierModel:
     def __init__(self):
         self.lib = ctypes.CDLL(library_mapping.get(computer_plateform))
         self.lib.new.argtypes = list(new_ml_arg_dict.values())
-        self.new.restype = ctypes.POINTER(LinearClassifier)
+        self.lib.new.restype = ctypes.POINTER(LinearClassifier)
         self.lib.train_regression.argtypes = list(train_regression_arg_dict.values())
         self.lib.train_regression.restype = None
-        self.lib.save_model.argtypes = list(save_model_arg_dict.values())
-        self.lib.save_model.restype = ctypes.c_int
+        self.lib.save_linear_model.argtypes = list(save_linear_model_arg_dict.values())
+        self.lib.save_linear_model.restype = ctypes.c_int
         self.lib.load_linear_model.argtypes = list(load_model_arg_dict.values())
         self.lib.load_linear_model.restype = ctypes.POINTER(LinearClassifier)
         self.lib.predict_regression.argtypes = list(predict_regression_arg_dict.values())
         self.lib.predict_regression.restype = ctypes.c_float
-        self.lib.delete_model.argtypes = [ctypes.POINTER(LinearClassifier)]
-        self.lib.delete_model.restype = None
+        self.lib.delete_pmc_model.argtypes = [ctypes.POINTER(LinearClassifier)]
+        self.lib.delete_pmc_model.restype = None
         self.lib.predict_classification.argtypes = list(predict_classification_arg_dict.values())
         self.lib.predict_classification.restype = ctypes.c_float
         self.lib.train_classification.argtypes = list(train_classification_arg_dict.values())
@@ -98,19 +98,19 @@ class LinearClassifier:
     def predict_classification(self, lm, inputs, inputs_size):
         return self.lib.predict_classification(lm, inputs, inputs_size)
 
-    def delete_model(self, pmc_model):
-        self.lib.delete_model(pmc_model)
+    def delete_pmc_model(self, pmc_model):
+        self.lib.delete_pmc_model(pmc_model)
 
-    def save_linear_model(self, pmc_model, filename):
-        is_model_saved = self.lib.save_model(ctypes.byref(pmc_model), filename)
+    def save_linear_model(self, linear_model, filename: str):
+        is_model_saved = self.lib.save_linear_model(ctypes.byref(linear_model), filename.encode('utf-8'))
         if not is_model_saved:
             raise IOError("Une erreur est survenue lors de la sauvegarde du modèle")
 
-    def load_linear_model(self, path):
-        load_model_result = self.lib.load_linear_model(path)
+    def load_linear_model(self, path: str):
+        load_model_result = self.lib.load_linear_model(path.encode('utf-8'))
 
         if load_model_result is not None:
-            pmc_model_ptr = ctypes.cast(load_model_result, ctypes.POINTER(LinearClassifier))
-            return pmc_model_ptr
+            linear_model_ptr = ctypes.cast(load_model_result, ctypes.POINTER(LinearClassifier))
+            return linear_model_ptr
         else:
             raise IOError("Une erreur est survenue lors du chargement du modèle")

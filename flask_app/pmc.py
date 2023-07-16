@@ -60,12 +60,12 @@ predict_pmc_model_arg_dict = {
     "is_classification": ctypes.c_bool
 }
 
-save_model_arg_dict = {
+save_pmc_model_arg_dict = {
     "model": ctypes.POINTER(PMC),
     "filename": ctypes.c_char_p
 }
 
-load_model_arg_dict = {
+load_pmc_model_arg_dict = {
     "path": ctypes.c_char_p
 }
 
@@ -81,10 +81,10 @@ class PerceptronMC:
         self.lib.new_pmc.restype = ctypes.POINTER(PMC)
         self.lib.train_pmc_model.argtypes = list(train_pmc_model_arg_dict.values())
         self.lib.train_pmc_model.restype = None
-        self.lib.load_model.argtypes = list(load_model_arg_dict.values())
-        self.lib.load_model.restype = ctypes.POINTER(PMC)
-        self.lib.save_model.argtypes = list(save_model_arg_dict.values())
-        self.lib.save_model.restype = ctypes.c_int
+        self.lib.load_pmc_model.argtypes = list(load_pmc_model_arg_dict.values())
+        self.lib.load_pmc_model.restype = ctypes.POINTER(PMC)
+        self.lib.save_pmc_model.argtypes = list(save_pmc_model_arg_dict.values())
+        self.lib.save_pmc_model.restype = ctypes.c_int
         self.lib.predict_pmc_model.argtypes = list(predict_pmc_model_arg_dict.values())
         self.lib.predict_pmc_model.restype = ctypes.POINTER(ctypes.c_float)
         self.lib.delete_pmc_model.argtypes = [ctypes.POINTER(PMC)]
@@ -92,8 +92,9 @@ class PerceptronMC:
         self.lib.get_X_len.argtypes = list(get_X_len_arg_dict.values())
         self.lib.get_X_len.restype = ctypes.c_int
 
-    def new(self, num_features: ctypes.c_size_t):
-        self.lib.new(num_features)
+    def new(self, dimensions):
+        dimensions_array = (ctypes.c_int64 * len(dimensions))(*dimensions)
+        self.lib.new_pmc(dimensions_array, len(dimensions_array))
 
     def train_pmc_model(self, lm, flattened_dataset_inputs, flattened_dataset_expected_outputs, len_input, len_output):
         self.lib.train_regression(lm, flattened_dataset_inputs, flattened_dataset_expected_outputs, len_input,
@@ -113,8 +114,8 @@ class PerceptronMC:
     def delete_model(self, pmc_model):
         self.lib.delete_model(pmc_model)
 
-    def save_linear_model(self, pmc_model, filename: bytes):
-        is_model_saved = self.lib.save_model(ctypes.byref(pmc_model), filename)
+    def save_pmc_model(self, pmc_model, filename: bytes):
+        is_model_saved = self.lib.save_pmc_model(ctypes.byref(pmc_model), filename)
         if not is_model_saved:
             raise IOError("Une erreur est survenue lors de la sauvegarde du modèle")
 
