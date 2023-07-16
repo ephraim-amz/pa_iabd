@@ -66,8 +66,8 @@ class LinearClassifierModel:
         self.lib.load_linear_model.restype = ctypes.POINTER(LinearClassifier)
         self.lib.predict_regression.argtypes = list(predict_regression_arg_dict.values())
         self.lib.predict_regression.restype = ctypes.c_float
-        self.lib.delete_pmc_model.argtypes = [ctypes.POINTER(LinearClassifier)]
-        self.lib.delete_pmc_model.restype = None
+        self.lib.delete_linear_model.argtypes = [ctypes.POINTER(LinearClassifier)]
+        self.lib.delete_linear_model.restype = None
         self.lib.predict_classification.argtypes = list(predict_classification_arg_dict.values())
         self.lib.predict_classification.restype = ctypes.c_float
         self.lib.train_classification.argtypes = list(train_classification_arg_dict.values())
@@ -98,8 +98,8 @@ class LinearClassifierModel:
     def predict_classification(self, lm, inputs, inputs_size):
         return self.lib.predict_classification(lm, inputs, inputs_size)
 
-    def delete_pmc_model(self, pmc_model):
-        self.lib.delete_pmc_model(pmc_model)
+    def delete_linear_model(self, pmc_model):
+        self.lib.delete_linear_model(pmc_model)
 
     def save_linear_model(self, linear_model, filename: str):
         is_model_saved = self.lib.save_linear_model(ctypes.byref(linear_model), filename.encode('utf-8'))

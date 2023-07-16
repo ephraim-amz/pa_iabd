@@ -22,10 +22,22 @@
     <div class="section upload-container">
         <h2>Uploader une image</h2>
         <label for="image-upload" class="upload-label">Cliquez ici pour sélectionner une image</label>
-        <form action="/upload" method="POST" enctype="multipart/form-data">
+        <form action="/predict" method="POST" enctype="multipart/form-data">
             <input type="file" id="image-upload" class="upload-input" name="image">
+            <label for="select-model-type">Avec quel modèle souhaitez vous entrainer cet image ?</label>
+            <select id="select-model-type" name="model_type">
+                <option value="linear">Modèle Linéaire</option>
+                <option value="pmc">Perceptron multi couches</option>
+            </select>
 
-            <input type="submit" value="Uploader">
+            <label for="select-prediction-type">Quel type de regréssion souhaitez vous pratiquer avec cette image
+                ?</label>
+            <select id="select-prediction-type" name="prediction_type">
+                <option value="reg">Régression</option>
+                <option value="classification">Classification</option>
+            </select>
+            <br>
+            <button type="submit" class="model-btn">Predire</button>
         </form>
     </div>
 
@@ -34,19 +46,24 @@
         <label for="image-upload" class="upload-label">Cliquez ici un modèle sérialisé</label>
         <form action="/load_model/" method="POST" enctype="multipart/form-data">
             <input type="file" id="image-upload" class="upload-input" name="model">
-             <label for="select-model-type">Sélectionnez un type de modèle :</label>
+            <label for="select-model-type">Sélectionnez un type de modèle :</label>
             <select id="select-model-type" name="selected_model">
                 <option value="linear">Modèle Linéaire</option>
                 <option value="pmc">Perceptron multi couches</option>
             </select>
-            <input type="submit" value="Uploader">
+            <button type="submit" class="model-btn">Charger</button>
         </form>
     </div>
 
 
     <div class="section model-container">
-        <h2>Enregistrer le dernier modèle</h2>
-        <button class="model-btn">Enregistrer</button>
+        <h2>Enregistrer un modèle</h2>
+        <label for="select-model-type">Sélectionnez un type de modèle :</label>
+        <select id="select-model-type" name="selected_model">
+            <option value="linear">Modèle Linéaire</option>
+            <option value="pmc">Perceptron multi couches</option>
+        </select>
+        <button type="submit" class="model-btn">Enregistrer</button>
     </div>
 </div>
 

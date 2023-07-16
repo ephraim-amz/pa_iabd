@@ -97,8 +97,8 @@ class PerceptronMC:
         self.lib.new_pmc(dimensions_array, len(dimensions_array))
 
     def train_pmc_model(self, lm, flattened_dataset_inputs, flattened_dataset_expected_outputs, len_input, len_output):
-        self.lib.train_regression(lm, flattened_dataset_inputs, flattened_dataset_expected_outputs, len_input,
-                                  len_output)
+        self.lib.train_pmc_model(lm, flattened_dataset_inputs, flattened_dataset_expected_outputs, len_input,
+                                 len_output)
 
     def train_classification(self, lm, flattened_dataset_inputs, flattened_dataset_expected_outputs, len_input,
                              len_output, lr, epochs):
@@ -106,20 +106,22 @@ class PerceptronMC:
                                       len_output, lr, epochs)
 
     def predict_regression(self, lm, inputs, inputs_size):
-        return self.lib.predict_regression(lm, inputs, inputs_size)
+        arr_inputs = (ctypes.c_float * inputs_size)(*inputs)
+        return self.lib.predict_regression(lm, arr_inputs, len(arr_inputs))
 
     def predict_classification(self, lm, inputs, inputs_size):
-        return self.lib.predict_classification(lm, inputs, inputs_size)
+        arr_inputs = (ctypes.c_float * inputs_size)(*inputs)
+        return self.lib.predict_classification(lm, arr_inputs, len(arr_inputs))
 
-    def delete_model(self, pmc_model):
-        self.lib.delete_model(pmc_model)
+    def delete_pmc_model(self, pmc_model):
+        self.lib.delete_pmc_model(pmc_model)
 
     def save_pmc_model(self, pmc_model, filename: bytes):
         is_model_saved = self.lib.save_pmc_model(ctypes.byref(pmc_model), filename)
         if not is_model_saved:
             raise IOError("Une erreur est survenue lors de la sauvegarde du modèle")
 
-    def load_linear_model(self, path):
+    def load_pmc_model(self, path):
         load_model_result = self.lib.load_pmc_model(path)
 
         if load_model_result is not None:
