@@ -84,6 +84,10 @@ pub extern "C" fn train_pmc_model(
                 (*model).deltas[L][j] *= (*model).X[L][j] - output_k[j - 1];
                 if is_classification {
                     (*model).deltas[L][j] *= (1. - (*model).X[L][j]).powf(2.);
+                } else {
+                    let target = output_k[j-1];
+                    let predicted_output = (*model).X[L][j];
+                    (*model).deltas[L][j] *= 2. * (predicted_output - target);
                 }
             }
 
