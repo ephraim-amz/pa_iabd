@@ -25,14 +25,13 @@ pub extern "C" fn new_pmc(dimensions_arr: *const i64, layer_size_per_neuron: usi
         unsafe { std::slice::from_raw_parts(dimensions_arr, layer_size_per_neuron) };
     let mut rng = thread_rng();
 
+
     let mut pmc_model = Box::new(PMC {
         layers: (layer_size_per_neuron - 1) as u32,
         dimensions: dimensions_arr_slice.to_vec(),
         W: Vec::new(),
         X: Vec::new(),
-        deltas: vec![
-            vec![0.0; dimensions_arr_slice[layer_size_per_neuron - 1] as usize]; layer_size_per_neuron
-        ],
+        deltas: Vec::new(),
     });
 
     for layer in 0..layer_size_per_neuron {
@@ -41,7 +40,7 @@ pub extern "C" fn new_pmc(dimensions_arr: *const i64, layer_size_per_neuron: usi
             for weight in 0..(dimensions_arr_slice[layer - 1] + 1) as usize {
                 pmc_model.W[layer].push(vec![0.0; (dimensions_arr_slice[layer] + 1) as usize]);
                 for index in 0..(dimensions_arr_slice[layer] + 1) as usize {
-                    pmc_model.W[layer][weight][index] = rng.gen_range(-1.0..=1.);
+                    pmc_model.W[layer][weight][index] = if index == 0 { 0.0 } else { rng.gen_range(-1.0..=1.) };
                 }
             }
         }
@@ -50,6 +49,7 @@ pub extern "C" fn new_pmc(dimensions_arr: *const i64, layer_size_per_neuron: usi
     for layer in 0..layer_size_per_neuron {
         let neuron_count = dimensions_arr_slice[layer] as usize + 1;
         pmc_model.X.push(vec![1.0; neuron_count]);
+        pmc_model.deltas.push(vec![0.0; neuron_count]);
     }
 
     let leaked = Box::into_raw(pmc_model);
@@ -77,6 +77,13 @@ pub extern "C" fn train_pmc_model(
         let input_k = &input_slice[k..];
         let output_slice = unsafe { std::slice::from_raw_parts(flattened_dataset_outputs, dataset_outputs_size) };
         let output_k = &output_slice[y_k..];
+        unsafe {
+            let epoch_train_string = format!("K:{:?}, y_k{:?}, input slice : {:?}, input_k {:?},  output slice : {:?}, output_k {:?}\n",
+                                             k, y_k, input_slice, input_k, output_slice, output_k);
+            let epoch_string_cstring = CString::new(epoch_train_string).unwrap();
+            puts(epoch_string_cstring.as_ptr());
+        }
+
         forward_pass(model, input_k.as_ptr(), input_k.len(), is_classification);
 
         unsafe {
@@ -85,7 +92,7 @@ pub extern "C" fn train_pmc_model(
                 if is_classification {
                     (*model).deltas[L][j] *= (1. - (*model).X[L][j]).powf(2.);
                 } else {
-                    let target = output_k[j-1];
+                    let target = output_k[j - 1];
                     let predicted_output = (*model).X[L][j];
                     (*model).deltas[L][j] *= 2. * (predicted_output - target);
                 }
@@ -112,6 +119,11 @@ pub extern "C" fn train_pmc_model(
             let informations_cstring = CString::new(informations_string).unwrap();
             puts(informations_cstring.as_ptr());
         }
+    }
+    unsafe {
+        let after_train_string = format!("X:{:?}, W {:?}, deltas: {:?}", (*model).X, (*model).W, (*model).deltas);
+        let after_train_string_cstring = CString::new(after_train_string).unwrap();
+        puts(after_train_string_cstring.as_ptr());
     }
 }
 
@@ -148,7 +160,7 @@ fn predict_pmc_classification(
         forward_pass(model, sample_inputs, sample_inputs_size, true);
 
         for i in 0..size {
-            *prediction_vector.add(i) = (*model).X[last_element][(i)];
+            *prediction_vector.add(i) = (*model).X[last_element][i];
         }
         prediction_vector
     }
@@ -281,7 +293,7 @@ fn calculate_loss(
         }
     }
 
-    loss / dataset_inputs_size as f32
+    loss
 }
 
 
