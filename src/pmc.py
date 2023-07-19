@@ -1,6 +1,6 @@
 import ctypes
 
-from utils import computer_plateform, library_mapping
+from flask_app.utils import computer_plateform, library_mapping
 
 
 class Veci64(ctypes.Structure):
