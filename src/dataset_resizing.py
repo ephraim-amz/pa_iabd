@@ -2,6 +2,7 @@ from PIL import Image
 import os
 import shutil
 
+
 # Chemin vers le dossier contenant les images
 type_terrain = "basket"
 dossier_images = f"./img/{type_terrain}"
