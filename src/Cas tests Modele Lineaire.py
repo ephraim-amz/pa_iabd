@@ -4,12 +4,12 @@ import ctypes
 import sys
 import os
 
-os.putenv('RUST_BACKTRACE', 'full')
+
 
 if __name__ == "__main__":
     computer_plateform = sys.platform
     library_mapping = {
-        "linux": r"./library/target/debug/liblibrary.so",
+        "linux": r"./src/library/target/debug/liblibrary.so",
         "windows": r"./library/target/debug/liblibrary.dll",
         "darwin": r"./library/target/debug/liblibrary.dylib",
     }
@@ -70,38 +70,27 @@ if __name__ == "__main__":
     lib.predict_regression.argtypes = list(predict_regression_arg_dict.values())
     lib.predict_regression.restype = ctypes.c_float
 
-    lib.delete_model.argtypes = [ctypes.POINTER(LinearClassifier)]
-    lib.delete_model.restype = None
+    lib.delete_linear_model.argtypes = [ctypes.POINTER(LinearClassifier)]
+    lib.delete_linear_model.restype = None
 
     save_model_arg_dict = {
         "model": ctypes.POINTER(LinearClassifier),
         "filename": ctypes.c_char_p
     }
 
-    lib.save_model.argtypes = list(save_model_arg_dict.values())
-    lib.save_model.restype = ctypes.c_int
-    filename = b"model.json"
-    # is_model_saved = lib.save_model(ctypes.byref(pmc_model), filename)
-    # if not is_model_saved:
-    #     raise IOError("Une erreur est survenue lors de la sauvegarde du modèle")
+    lib.save_linear_model.argtypes = list(save_model_arg_dict.values())
+    lib.save_linear_model.restype = ctypes.c_int
 
     load_model_arg_dict = {
         "path": ctypes.c_char_p
     }
 
-    lib.load_model.argtypes = list(load_model_arg_dict.values())
-    lib.load_model.restype = ctypes.POINTER(LinearClassifier)
+    lib.load_linear_model.argtypes = list(load_model_arg_dict.values())
+    lib.load_linear_model.restype = ctypes.POINTER(LinearClassifier)
 
-    # path = filename
-    #
-    # load_model_result = lib.load_model(path)
-    #
-    # if load_model_result is not None:
-    #     pmc_model_ptr = ctypes.cast(load_model_result, ctypes.POINTER(PMC))
-    # else:
-    #     raise IOError("Une erreur est survenue lors du chargement du modèle")
 
-    """
+
+
     # Cas simple
 
     linear_classifier_object = lib.new(2)
@@ -139,8 +128,9 @@ if __name__ == "__main__":
     plt.scatter([p[0] for p in test_dataset_inputs], [p[1] for p in test_dataset_inputs], c=predicted_outputs_colors)
     plt.scatter([p[0] for p in X], [p[1] for p in X], c=colors, s=200)
     plt.show()
-    lib.delete_model(linear_classifier_object)
-    
+
+    lib.delete_linear_model(linear_classifier_object)
+    """
     # cas multiple
     linear_classifier_object = lib.new(2)
 
@@ -159,7 +149,7 @@ if __name__ == "__main__":
     colors = ["blue" if output >= 0 else "red" for output in Y]
 
     lib.train_classification(linear_classifier_object, arr_inputs, arr_outputs, len(flattened_inputs),
-                             len(flattened_outputs),  0.000001, 100000)
+                             len(flattened_outputs),  0.00001, 100000)
 
     predicted_outputs = []
     for p in test_dataset_inputs:
@@ -172,8 +162,8 @@ if __name__ == "__main__":
     plt.scatter([p[0] for p in test_dataset_inputs], [p[1] for p in test_dataset_inputs], c=predicted_outputs_colors)
     plt.scatter([p[0] for p in X], [p[1] for p in X], c=colors[0:100], s=200)
     plt.show()
-    lib.delete_model(linear_classifier_object)
-
+    lib.delete_linear_model(linear_classifier_object)
+    
     # XOR
 
     linear_classifier_object = lib.new(2)
@@ -204,7 +194,7 @@ if __name__ == "__main__":
     plt.scatter([p[0] for p in test_dataset_inputs], [p[1] for p in test_dataset_inputs], c=predicted_outputs_colors)
     plt.scatter([p[0] for p in X], [p[1] for p in X], c=colors, s=200)
     plt.show()
-    lib.delete_model(linear_classifier_object)
+    lib.delete_linear_model(linear_classifier_object)
 
 
     # Cross
@@ -238,7 +228,7 @@ if __name__ == "__main__":
     plt.scatter([p[0] for p in test_dataset_inputs], [p[1] for p in test_dataset_inputs], c=predicted_outputs_colors,s=2000)
     plt.scatter([p[0] for p in X], [p[1] for p in X], c=colors, s=20)
     plt.show()
-    lib.delete_model(linear_classifier_object)
+    lib.delete_linear_model(linear_classifier_object)
     
 
     # Multi Linear 3 classes :
@@ -278,7 +268,7 @@ if __name__ == "__main__":
                 s=2000)
     plt.scatter([p[0] for p in X], [p[1] for p in X], c=colors, s=20)
     plt.show()
-    lib.delete_model(linear_classifier_object)
+    lib.delete_linear_model(linear_classifier_object)
     
 
     # Multi Cross
@@ -323,8 +313,7 @@ if __name__ == "__main__":
                 np.array(list(map(lambda elt: elt[1], filter(lambda c: Y[c[0]][2] == 1, enumerate(X)))))[:, 1],
                 color='green')
     plt.show()
-    lib.delete_model(linear_classifier_object)
-    """
+    lib.delete_linear_model(linear_classifier_object)
 
     # Régression
 
@@ -364,4 +353,6 @@ if __name__ == "__main__":
     plt.scatter([p[0] for p in test_dataset_inputs], predicted_outputs, s=200)
     plt.axis([-10, 10, -10, 10])
     plt.show()
-    lib.delete_model(linear_regression_object)
+    lib.delete_linear_model(linear_regression_object)
+    """
+

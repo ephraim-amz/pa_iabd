@@ -74,7 +74,6 @@ if __name__ == "__main__":
     predict_pmc_model_arg_dict = {
         "model": ctypes.POINTER(PMC),
         "sample_inputs": ctypes.POINTER(ctypes.c_float),
-        "sample_inputs_size": ctypes.c_size_t,
         "is_classification": ctypes.c_bool
     }
     lib.predict_pmc_model.argtypes = list(predict_pmc_model_arg_dict.values())
@@ -83,39 +82,27 @@ if __name__ == "__main__":
     lib.delete_pmc_model.argtypes = [ctypes.POINTER(PMC)]
     lib.delete_pmc_model.restype = None
 
-    save_model_arg_dict = {
+    save_pmc_model_arg_dict = {
         "model": ctypes.POINTER(PMC),
         "filename": ctypes.c_char_p
     }
 
-    lib.save_model.argtypes = list(save_model_arg_dict.values())
-    lib.save_model.restype = ctypes.c_int
-    filename = b"model.json"
-    # is_model_saved = lib.save_model(ctypes.byref(pmc_model), filename)
-    # if not is_model_saved:
-    #     raise IOError("Une erreur est survenue lors de la sauvegarde du modèle")
+    lib.save_pmc_model.argtypes = list(save_pmc_model_arg_dict.values())
+    lib.save_pmc_model.restype = ctypes.c_int
 
     load_model_arg_dict = {
         "path": ctypes.c_char_p
     }
 
-    lib.load_model.argtypes = list(load_model_arg_dict.values())
-    lib.load_model.restype = ctypes.POINTER(PMC)
-
-    # path = filename
-    #
-    # load_model_result = lib.load_model(path)
-    #
-    # if load_model_result is not None:
-    #     pmc_model_ptr = ctypes.cast(load_model_result, ctypes.POINTER(PMC))
-    # else:
-    #     raise IOError("Une erreur est survenue lors du chargement du modèle")
+    lib.load_pmc_model.argtypes = list(load_model_arg_dict.values())
+    lib.load_pmc_model.restype = ctypes.POINTER(PMC)
 
     get_X_len_arg_dict = {
         "model": ctypes.POINTER(PMC)
     }
     lib.get_X_len.argtypes = list(get_X_len_arg_dict.values())
     lib.get_X_len.restype = ctypes.c_int
+
 
     X = np.array([[1, 1], [2, 3], [3, 3]])
     Y = np.array([1, -1, -1])
@@ -139,8 +126,8 @@ if __name__ == "__main__":
         len(flattened_inputs),
         arr_outputs,
         len(arr_outputs),
-        ctypes.c_float(0.001),
-        ctypes.c_int32(10),
+        ctypes.c_float(0.0001),
+        ctypes.c_int32(1000),
         ctypes.c_bool(True),
     )
 
@@ -149,17 +136,16 @@ if __name__ == "__main__":
     flattened_inputs = sample_inputs.flatten()
     arr_inputs = (ctypes.c_float * len(flattened_inputs))(*flattened_inputs)
     t = np.array([1.0, 1.0])
-    t_ctypes = (ctypes.c_float * len(t))(*t)
+    t_array_ctypes = (ctypes.c_float * len(t))(*t)
     predicted_outputs_ptr = lib.predict_pmc_model(
         pmc_model,
-        t_ctypes,
-        2,
+        t_array_ctypes,
         ctypes.c_bool(True),
     )
 
     predicted_outputs = []
     for p in range(len(test_dataset)):
-        prediction = lib.predict_pmc_model(pmc_model, arr_inputs, len(flattened_inputs), ctypes.c_bool(True))
+        prediction = lib.predict_pmc_model(pmc_model, arr_inputs, ctypes.c_bool(True))
         arr = np.ctypeslib.as_array(prediction, (lib.get_X_len(pmc_model),))
         predicted_outputs.append(arr[0])
 
@@ -167,7 +153,7 @@ if __name__ == "__main__":
     plt.scatter([p[0] for p in test_dataset], [p[1] for p in test_dataset], c=predicted_outputs_colors, s=2)
     plt.scatter([p[0] for p in X], [p[1] for p in X], c=colors, s=200)
     plt.show()
-
+    # lib.save_pmc_model(pmc_model, b"pmc.json")
     lib.delete_pmc_model(pmc_model)
 
     """
@@ -191,7 +177,7 @@ if __name__ == "__main__":
 
     pmc_model = lib.new_pmc(dimensions_arr, len(dimensions_arr))
 
-    lib.train_pmc_model(pmc_model, arr_inputs, len(flattened_inputs), arr_outputs, ctypes.c_float(0.001),
+    lib.train_pmc_model(pmc_model, arr_inputs, len(flattened_inputs), arr_outputs, len(arr_outputs), ctypes.c_float(0.001),
                         ctypes.c_int32(100000), ctypes.c_bool(True))
 
     test_dataset = [[x1 / 9, x2 / 9] for x1 in range(1, 30) for x2 in range(-1, 30)]
@@ -202,7 +188,7 @@ if __name__ == "__main__":
 
     predicted_outputs = []
     for p in range(len(test_dataset)):
-        prediction = lib.predict_pmc_model(pmc_model, arr_inputs, len(flattened_inputs), ctypes.c_bool(True))
+        prediction = lib.predict_pmc_model(pmc_model, arr_inputs, ctypes.c_bool(True))
         arr = np.ctypeslib.as_array(prediction, (lib.get_X_len(pmc_model),))
         predicted_outputs.append(arr[0])
 
@@ -211,7 +197,7 @@ if __name__ == "__main__":
     plt.scatter([p[0] for p in X], [p[1] for p in X], c=colors, s=200)
     plt.show()
     lib.delete_pmc_model(pmc_model)
-
+    
     # XOR
 
 
@@ -231,8 +217,8 @@ if __name__ == "__main__":
 
     pmc_model = lib.new_pmc(dimensions_arr, len(dimensions_arr))
 
-    lib.train_pmc_model(pmc_model, arr_inputs, len(flattened_inputs), arr_outputs, ctypes.c_float(0.001),
-                        ctypes.c_int32(100000), ctypes.c_bool(True))
+    lib.train_pmc_model(pmc_model, arr_inputs, len(flattened_inputs), arr_outputs, len(arr_outputs), ctypes.c_float(0.001),
+                        ctypes.c_int32(1000),ctypes.c_bool(True))
 
     test_dataset = [[x1 / 10, x2 / 10] for x1 in range(-10, 20) for x2 in range(-10, 20)]
     sample_inputs = np.array(test_dataset, dtype=np.float32)
@@ -251,7 +237,7 @@ if __name__ == "__main__":
     plt.scatter([p[0] for p in X], [p[1] for p in X], c=colors, s=200)
     plt.show()
     lib.delete_pmc_model(pmc_model)
-
+    
     # Multi Linear 3 Classes
     X = np.random.random((500, 2)) * 2.0 - 1.0
     Y = np.array([[1, 0, 0] if -p[0] - p[1] - 0.5 > 0 and p[1] < 0 and p[0] - p[1] - 0.5 < 0 else
