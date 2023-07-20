@@ -2,8 +2,7 @@ from flask import Flask, render_template, request, flash, g
 from PIL import Image
 from io import BytesIO
 import numpy as np
-import linear_classifier
-import pmc
+from src import pmc, linear_classifier
 import atexit
 import secrets
 
@@ -76,4 +75,3 @@ atexit.register(deallocate_models_before_shutdown)
 
 if __name__ == "__main__":
     app.run(debug=True)
-    app.app_context()
