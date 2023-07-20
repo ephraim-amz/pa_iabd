@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Terrascan</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style/style.css') }}">
+</head>
+<body>
+<div class="container">
+    <h1 class="title">Terrascan</h1>
+
+    <div class="section">
+        <h2>Accueil</h2>
+        <p class="description">Bienvenue sur notre site de détection du type de terrain de sport par image !<br><br>Nous
+            sommes ravis de vous accueillir sur notre plateforme qui utilise des technologies avancées pour identifier
+            et classer les différents types de terrains de sport à partir d'images. Que vous soyez un passionné de
+            football, de basketball, de rugby ou tout autre sport, notre outil vous aidera à reconnaître les terrains
+            appropriés.<br><br>Essayez notre outil dès maintenant en téléchargeant ou en prenant une photo du terrain de
+            sport que vous souhaitez identifier.</p>
+    </div>
+
+    <div class="section upload-container">
+        <h2>Uploader une image</h2>
+        <label for="image-upload" class="upload-label">Cliquez ici pour sélectionner une image</label>
+        <form action="/predict" method="POST" enctype="multipart/form-data">
+            <input type="file" id="image-upload" class="upload-input" name="image">
+            <label for="select-model-type">Avec quel modèle souhaitez vous entrainer cet image ?</label>
+            <select id="select-model-type" name="model_type">
+                <option value="linear">Modèle Linéaire</option>
+                <option value="pmc">Perceptron multi couches</option>
+            </select>
+
+            <label for="select-prediction-type">Quel type de regréssion souhaitez vous pratiquer avec cette image
+                ?</label>
+            <select id="select-prediction-type" name="prediction_type">
+                <option value="reg">Régression</option>
+                <option value="classification">Classification</option>
+            </select>
+            <br>
+            <button type="submit" class="model-btn">Predire</button>
+        </form>
+    </div>
+
+    <div class="section upload-container">
+        <h2>Charger un modèle</h2>
+        <label for="image-upload" class="upload-label">Cliquez ici un modèle sérialisé</label>
+        <form action="/load_model/" method="POST" enctype="multipart/form-data">
+            <input type="file" id="image-upload" class="upload-input" name="model">
+            <label for="select-model-type">Sélectionnez un type de modèle :</label>
+            <select id="select-model-type" name="selected_model">
+                <option value="linear">Modèle Linéaire</option>
+                <option value="pmc">Perceptron multi couches</option>
+            </select>
+            <button type="submit" class="model-btn">Charger</button>
+        </form>
+    </div>
+
+
+    <div class="section model-container">
+        <h2>Enregistrer un modèle</h2>
+        <label for="select-model-type">Sélectionnez un type de modèle :</label>
+        <select id="select-model-type" name="selected_model">
+            <option value="linear">Modèle Linéaire</option>
+            <option value="pmc">Perceptron multi couches</option>
+        </select>
+        <button type="submit" class="model-btn">Enregistrer</button>
+    </div>
+</div>
+
+{% with messages = get_flashed_messages() %}
+    {% if messages %}
+        <div class="flash-messages">
+            {% for message in messages %}
+                <div class="flash-message">{{ message }}</div>
+            {% endfor %}
+        </div>
+    {% endif %}
+{% endwith %}
+</body>
+</html>
