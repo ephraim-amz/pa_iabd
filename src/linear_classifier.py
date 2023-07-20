@@ -1,5 +1,5 @@
 import ctypes
-from utils import library_mapping, computer_plateform
+from flask_app.utils import library_mapping, computer_plateform
 
 
 class LinearClassifier(ctypes.Structure):
@@ -43,7 +43,7 @@ predict_regression_arg_dict = {
     'inputs_size': ctypes.c_size_t,
 }
 
-save_linear_model_arg_dict = {
+save_model_arg_dict = {
     "model": ctypes.POINTER(LinearClassifier),
     "filename": ctypes.c_char_p
 }
@@ -60,7 +60,7 @@ class LinearClassifierModel:
         self.lib.new.restype = ctypes.POINTER(LinearClassifier)
         self.lib.train_regression.argtypes = list(train_regression_arg_dict.values())
         self.lib.train_regression.restype = None
-        self.lib.save_linear_model.argtypes = list(save_linear_model_arg_dict.values())
+        self.lib.save_linear_model.argtypes = list(save_model_arg_dict.values())
         self.lib.save_linear_model.restype = ctypes.c_int
         self.lib.load_linear_model.argtypes = list(load_model_arg_dict.values())
         self.lib.load_linear_model.restype = ctypes.POINTER(LinearClassifier)

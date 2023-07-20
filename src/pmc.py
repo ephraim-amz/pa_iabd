@@ -29,7 +29,7 @@ class Vec3df32(ctypes.Structure):
 
 class PMC(ctypes.Structure):
     _fields_ = [
-        ('layers', ctypes.c_uint),
+        ('layers', ctypes.c_size_t),
         ('dimensions', ctypes.POINTER(Veci64)),
         ('X', ctypes.POINTER(Vec2df32)),
         ('W', ctypes.POINTER(Vec2df32)),
@@ -56,7 +56,6 @@ train_pmc_model_arg_dict = {
 predict_pmc_model_arg_dict = {
     "model": ctypes.POINTER(PMC),
     "sample_inputs": ctypes.POINTER(ctypes.c_float),
-    "sample_inputs_size": ctypes.c_size_t,
     "is_classification": ctypes.c_bool
 }
 
@@ -65,7 +64,7 @@ save_pmc_model_arg_dict = {
     "filename": ctypes.c_char_p
 }
 
-load_pmc_model_arg_dict = {
+load_model_arg_dict = {
     "path": ctypes.c_char_p
 }
 
@@ -81,7 +80,7 @@ class PerceptronMC:
         self.lib.new_pmc.restype = ctypes.POINTER(PMC)
         self.lib.train_pmc_model.argtypes = list(train_pmc_model_arg_dict.values())
         self.lib.train_pmc_model.restype = None
-        self.lib.load_pmc_model.argtypes = list(load_pmc_model_arg_dict.values())
+        self.lib.load_pmc_model.argtypes = list(load_model_arg_dict.values())
         self.lib.load_pmc_model.restype = ctypes.POINTER(PMC)
         self.lib.save_pmc_model.argtypes = list(save_pmc_model_arg_dict.values())
         self.lib.save_pmc_model.restype = ctypes.c_int
