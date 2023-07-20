@@ -91,13 +91,13 @@ pub extern "C" fn train_classification(
         let outputs = std::slice::from_raw_parts(flattened_outputs, output_size);
 
         for _ in 0..epochs {
-            let k = rng.gen_range(0..inputs_size / output_size);
+            let k = rng.gen_range(0..inputs_size / output_size); // Voir la taille du k qui peut être erroné
             let inputs_slice = &inputs[k * output_size..(k + 1) * output_size];
             let mut Xk = vec![1.0];
             Xk.extend_from_slice(inputs_slice);
 
 
-            let gXk = dot_product(&(*lm).weights, &Xk);
+            let gXk = dot_product(&(*lm).weights, &Xk); // Voir usage de sigmoid ou tanh
 
 
             for (i, weight) in (*lm).weights.iter_mut().skip(1).enumerate() {
@@ -109,10 +109,6 @@ pub extern "C" fn train_classification(
 
 fn dot_product(weights: &Vec<f32>, inputs: &Vec<f32>) -> f32 {
     weights.iter().zip(inputs).map(|(w, x)| w * x).sum()
-}
-
-fn transpose(weights: &[f32], size: usize) -> Vec<f32> {
-    weights.iter().take(size).cloned().collect()
 }
 
 
@@ -150,7 +146,7 @@ pub extern "C" fn predict_classification(
 }
 
 #[no_mangle]
-pub extern "C" fn delete_model(lm: *mut LinearClassifier) {
+pub extern "C" fn delete_linear_model(lm: *mut LinearClassifier) {
     unsafe {
         if !lm.is_null() {
             drop(Box::from_raw(lm));
